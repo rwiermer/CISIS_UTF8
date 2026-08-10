@@ -74,7 +74,9 @@ whose existence must be synchronized after a run; `CisisProject` removes a
 retained file when the result reports that it no longer exists. IndexedDB
 storage is optional; snapshots are plain versioned objects and can also be
 exported by the host. Project archives are deterministic binary `Uint8Array`
-values suitable for download or upload without base64 conversion.
+values suitable for download or upload without base64 conversion. IndexedDB
+schema upgrades are automatic. Storage failures expose `CisisProjectStoreError`
+with a `blocked`, `corrupt`, or `quota` code for IDE error handling.
 
 PFT, FST, search expressions, and IsisScript output are untrusted user input
 from the host application's perspective. Render generated HTML only after

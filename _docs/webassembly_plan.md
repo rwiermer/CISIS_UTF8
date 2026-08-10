@@ -57,7 +57,7 @@ but it is not yet a hardened or published release.
 | M2 browser runner | Partial | Strict-TypeScript Worker runner, isolation, validation, limits, cancellation by Worker replacement, returned files, and basic diagnostics are implemented. Chromium is green; Firefox is not yet in CI. |
 | M3 differential suite | Partial | Eleven data-driven scenarios cover exact combining and non-Latin UTF-8, PFT subfields/modes/functions/missing/repeated fields, structured records, PFT and search errors, WXIS flow/includes, ISO import/export, database reads/updates, file deletion, full inversion, and simple/compound search. More mutation and parser cases remain. |
 | M4 WXIS IsisScript | Partial | Hello/display, fields, loops, CGI parameters, includes, database import/export/update, file deletion, and search match native behavior in covered cases. Other host operations, temporary files, and XML remain to be classified and tested. |
-| M5 IDE APIs and persistence | Partial | CLI-backed helpers, active single-record formatting, `CisisProject`, file synchronization, versioned snapshots, optional IndexedDB, and deterministic binary project archives are implemented. MFN/status-preserving database editing, migrations, quotas, and performance budgets remain; a direct C ABI is optional pending measurements. |
+| M5 IDE APIs and persistence | Partial | CLI-backed helpers, active single-record formatting, `CisisProject`, file synchronization, versioned snapshots, IndexedDB v1-to-v2 migration and typed storage failures, and deterministic binary project archives are implemented. MFN/status-preserving database editing, quota budgets/recovery, multi-tab behavior, and performance budgets remain; a direct C ABI is optional pending measurements. |
 | M6 hardening and release | Not started | Cross-browser coverage, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
 
 The current green reference is implementation commit
@@ -71,10 +71,10 @@ on 2026-08-10.
 1. Close the remaining M3/M4 correctness gaps with additional PFT/search parser
    failures, database record deletion and sort, incremental inversion, WXIS
    temporary files/XML, and explicit unsupported-host-operation tests.
-2. Complete M5 with IndexedDB migration and quota behavior, MFN/status-preserving
-   multi-record database editing, and measured browser performance budgets. Add
-   a direct C ABI only where measurements or diagnostics show a clear benefit
-   over the parity-tested CLI boundary.
+2. Complete M5 with IndexedDB quota budgets/recovery and multi-tab behavior,
+   MFN/status-preserving multi-record database editing, and measured browser
+   performance budgets. Add a direct C ABI only where measurements or
+   diagnostics show a clear benefit over the parity-tested CLI boundary.
 3. Start M6 with Firefox and WebKit CI, sanitizer/fuzz jobs, artifact budgets,
    reproducible release metadata, SBOM generation, and LGPL deliverables.
 
@@ -300,11 +300,11 @@ native WXIS; unsupported host operations fail explicitly and safely.
 ### M5: direct IDE APIs and persistence
 
 **Status: partial.** Database-oriented TypeScript helpers, active single-record
-formatting, host-managed project files, versioned snapshots, IndexedDB
-persistence, and deterministic binary project archives are implemented.
-MFN/status-preserving multi-record database editing, migrations, quota handling,
-and measurements remain. A direct C ABI remains optional pending evidence that
-it improves performance or diagnostics.
+formatting, host-managed project files, versioned snapshots, IndexedDB v1-to-v2
+migration, typed blocked/corrupt/quota failures, and deterministic binary project
+archives are implemented. MFN/status-preserving multi-record database editing,
+quota budgets/recovery, multi-tab behavior, and measurements remain. A direct C
+ABI remains optional pending evidence that it improves performance or diagnostics.
 
 - Measure the CLI-backed `format`, `search`, and `index` helpers, then add a
   narrow C ABI only where the results justify it; do not expose internal C
@@ -370,7 +370,7 @@ The detailed evidence and exclusions are maintained in
 | IsisScript | Flow, includes, DB import/read/search/update | XML, temporary-file, error, shell, and socket cases remain |
 | FST/indexing | Full inversion and search for bundled CDS FST | Other techniques, incremental inversion, and large databases |
 | Database formats | ISIS1660 MST/XRF and companion index files; active structured record formatting | MFN/status-preserving editing and other layout variants after fixture coverage |
-| Persistence | Host-managed files, versioned snapshots, optional IndexedDB, deterministic import/export archive | Migrations, quotas, and multi-tab coordination |
+| Persistence | Host-managed files, versioned snapshots, IndexedDB schema migration and typed failures, deterministic import/export archive | Quota budgets/recovery and multi-tab coordination |
 | Concurrency | One serialized runtime per worker | Worker pool only after memory measurement |
 | Networking | JavaScript host fetches files before execution | Native socket compatibility excluded |
 

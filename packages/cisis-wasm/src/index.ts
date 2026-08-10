@@ -42,7 +42,11 @@ export {
   type ProjectIsisScriptRequest,
   type ProjectSearchRequest,
 } from "./project.js";
-export { CisisProjectStore } from "./persistence.js";
+export {
+  CisisProjectStore,
+  CisisProjectStoreError,
+  type CisisProjectStoreErrorCode,
+} from "./persistence.js";
 export { decodeProjectArchive, encodeProjectArchive } from "./archive.js";
 export { encodeIso2709Record } from "./record.js";
 

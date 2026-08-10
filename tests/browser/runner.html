@@ -16,6 +16,15 @@
       const status = document.querySelector("#status");
       const runner = new CisisRunner({ defaultTimeoutMs: 10_000 });
 
+      function openDatabase(name, version, upgrade) {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(name, version);
+          request.onupgradeneeded = () => upgrade?.(request.result);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
       try {
         const mx = await runner.run({
           program: "mx",
@@ -69,6 +78,47 @@
         await store.delete("cds");
         store.close();
 
+        const migrationDatabaseName = `cisis-wasm-migration-${crypto.randomUUID()}`;
+        const legacyDatabase = await openDatabase(migrationDatabaseName, 1, (database) => {
+          const projects = database.createObjectStore("projects", { keyPath: "name" });
+          projects.put({
+            name: "legacy",
+            updatedAt: 1,
+            schemaVersion: 1,
+            files: { "legacy.txt": new Uint8Array([1, 2, 3]) },
+          });
+        });
+        legacyDatabase.close();
+        const migratedStore = new CisisProjectStore(migrationDatabaseName);
+        const migrated = await migratedStore.load("legacy");
+        const migratedDatabase = await openDatabase(migrationDatabaseName, 2);
+        const migratedIndex = migratedDatabase
+          .transaction("projects", "readonly")
+          .objectStore("projects")
+          .indexNames.contains("updatedAt");
+        migratedDatabase.close();
+
+        const corruptDatabase = await openDatabase(migrationDatabaseName, 2);
+        const corruptTransaction = corruptDatabase.transaction("projects", "readwrite");
+        corruptTransaction.objectStore("projects").put({
+          name: "corrupt",
+          updatedAt: 2,
+          schemaVersion: 99,
+          files: {},
+        });
+        await new Promise((resolve, reject) => {
+          corruptTransaction.oncomplete = resolve;
+          corruptTransaction.onerror = () => reject(corruptTransaction.error);
+        });
+        corruptDatabase.close();
+        let corruptionCode;
+        try {
+          await migratedStore.load("corrupt");
+        } catch (error) {
+          corruptionCode = error.code;
+        }
+        migratedStore.close();
+
         const formatted = await restored.format({
           database: "cds",
           pft: "mfn(4),'|',v24/",
@@ -91,6 +141,11 @@
           persistedProjects,
           persistedFileCount: Object.keys(snapshot.files).length,
           archiveBytes: archive.byteLength,
+          persistenceMigration: {
+            fileBytes: [...migrated.files["legacy.txt"]],
+            updatedAtIndex: migratedIndex,
+            corruptionCode,
+          },
           deleted: {
             exitCode: deleted.exitCode,
             fileState: deleted.fileStates["delete-me.txt"],

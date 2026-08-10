@@ -28,7 +28,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | IsisScript helper | Verified subset | `runIsisScript()` maps source, parameters, and files to request-local WXIS arguments. |
 | Project workspace | Verified | `CisisProject` retains host-side files, absorbs returned outputs, and removes retained files inspected as absent after a run. |
 | Project snapshots | Verified | Snapshots use schema version 1 and defensive `Uint8Array` copies. |
-| IndexedDB persistence | Verified in Chromium | `CisisProjectStore` supports save, load, list, delete, and close. |
+| IndexedDB persistence | Verified in Chromium | `CisisProjectStore` supports save, load, list, delete, and close; v1 databases migrate to v2 with binary data intact, and blocked/corrupt/quota failures have typed codes. |
 | Portable project archive | Verified in Chromium | Deterministic binary archives preserve arbitrary file bytes without base64 and reject corrupt, oversized, duplicate, or escaping entries. |
 | Direct C API | Not implemented | IDE helpers currently translate to validated MX/WXIS command arguments. |
 | Serializable record model | Partial | Ordered fields accept text or byte values. Arbitrary MFNs, deleted status, multiple records, and database mutation are not yet represented. |
@@ -113,7 +113,7 @@ MST/XRF checksums, and subsequent selected PFT output remain compared.
 - Cover IsisScript XML, temporary files, and unsupported-operation errors.
 - Add Firefox and WebKit Playwright jobs.
 - Measure cold start, repeated-run latency, memory, upload time, and artifact size.
-- Define IndexedDB migration, quota, corruption, and multi-tab behavior.
+- Define IndexedDB quota budgets/recovery and multi-tab behavior.
 - Extend structured records to MFN/status-preserving multi-record database edits.
 - Add sanitizer builds, fuzz smoke tests, release provenance, checksums, SBOM,
   and LGPL source/relinking deliverables.

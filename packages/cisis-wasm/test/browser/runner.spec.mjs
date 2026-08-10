@@ -28,5 +28,10 @@ test("runs MX/PFT and WXIS in the packaged browser worker", async ({ page }) => 
   expect(result.persistedProjects).toContain("cds");
   expect(result.persistedFileCount).toBe(3);
   expect(result.archiveBytes).toBeGreaterThan(70_000);
+  expect(result.persistenceMigration).toEqual({
+    fileBytes: [1, 2, 3],
+    updatedAtIndex: true,
+    corruptionCode: "corrupt",
+  });
   expect(result.deleted).toEqual({ exitCode: 0, fileState: false, retained: false });
 });
