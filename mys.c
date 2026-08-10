@@ -269,7 +269,7 @@ FILE *src;      /* File to sort, open for reading */
 
    name=dbxcipar(gidbnp,name,'=');
    remove(name);
-#if UNIX
+#if UNIX && !defined(__EMSCRIPTEN__)
    sprintf(fnames[0],"mv %s %s",fnames[index[0]],name);
    if (system(fnames[0])) serrorX(MOVE_ERR);
 #else
@@ -677,4 +677,3 @@ char *argv[];
    exit(rc);
 }
 #endif /* MYSMAIN || !MYSFUN*/
-

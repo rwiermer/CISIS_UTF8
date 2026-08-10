@@ -20,9 +20,28 @@
         });
         const source = await fetch("/wxis_src/examples/hello.xis").then((response) => response.text());
         const wxis = await runner.runIsisScript({ source });
+        const [mst, xrf] = await Promise.all(
+          ["mst", "xrf"].map((extension) =>
+            fetch(`/wxis_src/examples/cdsx/cds.${extension}`).then(async (response) => {
+              if (!response.ok) throw new Error(`Failed to load CDSX ${extension}`);
+              return new Uint8Array(await response.arrayBuffer());
+            }),
+          ),
+        );
+        const formatted = await runner.format({
+          database: "cds",
+          pft: "mfn(4),'|',v24/",
+          files: { "cds.mst": mst, "cds.xrf": xrf },
+          count: 2,
+        });
         window.__cisisTestResult = {
           mx: { exitCode: mx.exitCode, stdout: mx.stdout, stderr: mx.stderr },
           wxis: { exitCode: wxis.exitCode, stdout: wxis.stdout, stderr: wxis.stderr },
+          formatted: {
+            exitCode: formatted.exitCode,
+            stdout: formatted.stdout,
+            stderr: formatted.stderr,
+          },
         };
         status.value = "Passed";
       } catch (error) {

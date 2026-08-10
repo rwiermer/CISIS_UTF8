@@ -59,3 +59,30 @@ export interface IsisScriptRequest {
   timeoutMs?: number;
   returnFiles?: string[];
 }
+
+export interface FormatRequest {
+  database: string;
+  pft: string;
+  files?: Record<string, CisisInputFile>;
+  from?: number;
+  count?: number;
+  timeoutMs?: number;
+}
+
+export interface IndexRequest {
+  database: string;
+  fst: string;
+  files?: Record<string, CisisInputFile>;
+  index?: string;
+  timeoutMs?: number;
+}
+
+export interface SearchRequest {
+  database: string;
+  expression: string;
+  files?: Record<string, CisisInputFile>;
+  pft?: string;
+  from?: number;
+  count?: number;
+  timeoutMs?: number;
+}

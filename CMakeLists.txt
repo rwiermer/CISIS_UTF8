@@ -50,6 +50,10 @@ set(CISIS_COMMON_SOURCES
   mxrun.c
   mxtxt.c)
 
+if(EMSCRIPTEN)
+  list(APPEND CISIS_COMMON_SOURCES mys.c)
+endif()
+
 set(CISIS_MX_SOURCES
   mx.c
   cisisx.c
@@ -116,6 +120,7 @@ function(cisis_configure_target target is_wxis)
   endif()
 
   if(EMSCRIPTEN)
+    target_compile_definitions(${target} PRIVATE MYSFUN=1)
     target_link_options(${target} PRIVATE
       -sMODULARIZE=1
       -sEXPORT_ES6=1

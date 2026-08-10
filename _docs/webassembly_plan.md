@@ -68,6 +68,10 @@ inferred from the misleadingly named native `SIXTY_FOUR` build flag.
   the scenario list.
 - **Next:** broaden M3 into FST/inverted-file search, database mutation, syntax
   errors, includes, and the remaining grouped repository examples.
+- **IDE API bootstrap:** typed `format`, `index`, and `search` helpers now map
+  validated requests onto the parity-tested MX runtime. They intentionally keep
+  project persistence in the JavaScript host; a direct C ABI and IndexedDB
+  project store remain M5 work.
 
 ## Architecture
 

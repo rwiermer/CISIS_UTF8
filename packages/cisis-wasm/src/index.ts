@@ -5,7 +5,10 @@ import type {
   CisisRunRequest,
   CisisRunResult,
   CisisRunnerOptions,
+  FormatRequest,
+  IndexRequest,
   IsisScriptRequest,
+  SearchRequest,
 } from "./types.js";
 
 export type {
@@ -17,7 +20,10 @@ export type {
   CisisRunRequest,
   CisisRunResult,
   CisisRunnerOptions,
+  FormatRequest,
+  IndexRequest,
   IsisScriptRequest,
+  SearchRequest,
 } from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
@@ -41,6 +47,24 @@ interface QueuedRun {
 interface ActiveRun extends QueuedRun {
   id: number;
   timer: ReturnType<typeof setTimeout>;
+}
+
+function databaseName(value: string): string {
+  if (value.includes("=") || value.startsWith("-")) {
+    throw new Error(`Invalid CISIS database name: ${value}`);
+  }
+  return normalizeVirtualPath(value);
+}
+
+function positiveInteger(name: string, value: number | undefined): number | undefined {
+  if (value !== undefined && (!Number.isSafeInteger(value) || value <= 0)) {
+    throw new Error(`CISIS ${name} must be a positive integer`);
+  }
+  return value;
+}
+
+function optionalTimeout(timeoutMs: number | undefined): { timeoutMs?: number } {
+  return timeoutMs === undefined ? {} : { timeoutMs };
 }
 
 function validateRequest(
@@ -165,6 +189,61 @@ export class CisisRunner {
       files: { ...request.files, [scriptPath]: request.source },
       ...(request.timeoutMs === undefined ? {} : { timeoutMs: request.timeoutMs }),
       ...(request.returnFiles === undefined ? {} : { returnFiles: request.returnFiles }),
+    });
+  }
+
+  format(request: FormatRequest): Promise<CisisRunResult> {
+    const database = databaseName(request.database);
+    const from = positiveInteger("format from", request.from);
+    const count = positiveInteger("format count", request.count);
+    return this.run({
+      program: "mx",
+      args: [
+        database,
+        `pft=${request.pft}`,
+        ...(from === undefined ? [] : [`from=${from}`]),
+        ...(count === undefined ? [] : [`count=${count}`]),
+        "lw=0",
+        "now",
+      ],
+      ...(request.files === undefined ? {} : { files: request.files }),
+      ...optionalTimeout(request.timeoutMs),
+    });
+  }
+
+  index(request: IndexRequest): Promise<CisisRunResult> {
+    const database = databaseName(request.database);
+    const index = databaseName(request.index ?? request.database);
+    const fstPath = "__cisis/index.fst";
+    const returnFiles = ["cnt", "ifp", "l01", "l02", "n01", "n02"].map(
+      (extension) => `${index}.${extension}`,
+    );
+    return this.run({
+      program: "mx",
+      args: [database, `fst=@${fstPath}`, `fullinv=${index}`, "now"],
+      files: { ...request.files, [fstPath]: request.fst },
+      returnFiles,
+      ...optionalTimeout(request.timeoutMs),
+    });
+  }
+
+  search(request: SearchRequest): Promise<CisisRunResult> {
+    const database = databaseName(request.database);
+    const from = positiveInteger("search from", request.from);
+    const count = positiveInteger("search count", request.count);
+    return this.run({
+      program: "mx",
+      args: [
+        database,
+        `bool=${request.expression}`,
+        `pft=${request.pft ?? "mfn/"}`,
+        ...(from === undefined ? [] : [`from=${from}`]),
+        ...(count === undefined ? [] : [`count=${count}`]),
+        "lw=0",
+        "now",
+      ],
+      ...(request.files === undefined ? {} : { files: request.files }),
+      ...optionalTimeout(request.timeoutMs),
     });
   }
 

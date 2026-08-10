@@ -16,4 +16,7 @@ test("runs MX/PFT and WXIS in the packaged browser worker", async ({ page }) => 
   expect(result.wxis.stderr).toBe("");
   expect(result.wxis.stdout).toContain("Content-type: text/html");
   expect(result.wxis.stdout).toContain("Hello world!");
+  expect(result.formatted.exitCode).toBe(0);
+  expect(result.formatted.stderr).toBe("");
+  expect(result.formatted.stdout).toContain("0001|Techniques for the measurement");
 });
