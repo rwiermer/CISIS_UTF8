@@ -20,6 +20,26 @@ export const scenarios = [
     ],
   },
   {
+    name: "pft-non-latin-unicode",
+    group: "pft",
+    files: {
+      "unicode.txt": {
+        text: "Zażółć gęślą jaźń 日本語 Ελληνικά\n",
+      },
+    },
+    steps: [
+      {
+        program: "mx",
+        args: ["seq=unicode.txt", "pft=v1/", "now"],
+        expected: {
+          exitCode: 0,
+          stdout: "Zażółć gęślą jaźń 日本語 Ελληνικά",
+          stderr: "",
+        },
+      },
+    ],
+  },
+  {
     name: "wxis-hello",
     group: "isisscript",
     files: {
@@ -178,6 +198,47 @@ export const scenarios = [
           stderr: "",
         },
       },
+      {
+        program: "mx",
+        args: [
+          "cds",
+          "pft=mfn(4),'|',v26^a,'|',v26^b,'|',v26^c/",
+          "from=1",
+          "count=1",
+          "lw=0",
+          "now",
+        ],
+        expected: {
+          exitCode: 0,
+          stdout: "0001|Paris|Unesco|-1965",
+          stderr: "",
+        },
+      },
+      {
+        program: "mx",
+        args: ["cds", "pft=mpu,v24/", "from=1", "count=1", "lw=0", "now"],
+        expected: {
+          exitCode: 0,
+          stdout: "TECHNIQUES FOR THE MEASUREMENT OF TRANSPIRATION OF INDIVIDUAL PLANTS",
+          stderr: "",
+        },
+      },
+      {
+        program: "mx",
+        args: [
+          "cds",
+          "pft='occ=',f(nocc(v70),1,0),'|size=',f(size(v24),1,0),'|left=',left(v24,10)/",
+          "from=1",
+          "count=1",
+          "lw=0",
+          "now",
+        ],
+        expected: {
+          exitCode: 0,
+          stdout: "occ=2|size=68|left=Techniques",
+          stderr: "",
+        },
+      },
     ],
   },
   {
@@ -214,6 +275,24 @@ export const scenarios = [
         expected: {
           exitCode: 0,
           stdout: "       6  PLANTS\n       6  Set #000000001\nHits=6\n0001\n0004\n0011",
+          stderr: "",
+        },
+      },
+      {
+        program: "mx",
+        args: [
+          "cds",
+          "bool=plants and water",
+          "pft=mfn(4)/",
+          "count=5",
+          "lw=0",
+          "now",
+        ],
+        expected: {
+          exitCode: 0,
+          stdout:
+            "       6  PLANTS\n      13  WATER\n       3  Operation *\n" +
+            "       3  Set #000000001\nHits=3\n0004\n0011\n0013",
           stderr: "",
         },
       },
