@@ -37,6 +37,11 @@ test("runs the interactive playground workflows", async ({ page }) => {
   await page.locator("#run-button").click();
   await expect(page.locator("#output-status")).toHaveText("Completed");
   await expect(page.locator("#console")).toContainText('"mfn": 4');
+  await expect(page.locator("#console")).toContainText('"value": "The climate archive"');
+  await expect(page.locator("#console")).toContainText('"value": "日本語図書館のメタデータ"');
+  await expect(page.locator("#console")).not.toContainText('"0": 84');
+  await expect(page.locator("#record-list .record-title").first()).toHaveText("The climate archive");
+  await expect(page.locator("#records-source")).toHaveValue(/"value": "Maya Okafor"/);
 
   await page.getByRole("tab", { name: "FDT", exact: true }).click();
   await page.locator("#run-button").click();

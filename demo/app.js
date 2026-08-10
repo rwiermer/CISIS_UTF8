@@ -262,6 +262,7 @@ const exampleSelects = Object.fromEntries(
 );
 
 const runner = new CisisRunner({ defaultTimeoutMs: 12_000 });
+const textDecoder = new TextDecoder("utf-8", { fatal: true });
 let project;
 let activeOperation = "pft";
 let currentRecords = structuredClone(DEMO_RECORDS);
@@ -382,6 +383,17 @@ function normalizeRecords(value) {
   }));
 }
 
+// The runtime preserves exact bytes; playground records are explicitly UTF-8 text.
+function decodeTextRecords(records) {
+  return records.map((record) => ({
+    ...record,
+    fields: record.fields.map((field) => ({
+      ...field,
+      value: typeof field.value === "string" ? field.value : textDecoder.decode(field.value),
+    })),
+  }));
+}
+
 function resultText(result) {
   const streams = [result.stdout, result.stderr].filter(Boolean);
   return streams.join(result.stdout && result.stderr ? "\n\n--- stderr ---\n" : "");
@@ -427,11 +439,11 @@ async function runRecords() {
   const result = await project.writeRecords({ database: "demo", records, replace: true });
   if (result.exitCode !== 0) return result;
   const readback = await project.readRecords({ database: "demo", count: 100 });
-  if (readback.exitCode === 0) {
-    currentRecords = readback.records;
-    renderCatalog(currentRecords);
-  }
-  return { ...readback, stdout: JSON.stringify(readback.records, null, 2) };
+  if (readback.exitCode !== 0) return readback;
+  currentRecords = decodeTextRecords(readback.records);
+  renderCatalog(currentRecords);
+  elements.records.value = JSON.stringify(currentRecords, null, 2);
+  return { ...readback, stdout: JSON.stringify(currentRecords, null, 2) };
 }
 
 async function runFdt() {
