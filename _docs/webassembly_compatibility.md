@@ -8,11 +8,11 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 
 - Package version: `0.1.0-dev` (private preview).
 - Validated implementation: commit
-  [`a1410d3`](https://github.com/rwiermer/CISIS_UTF8/commit/a1410d37050170854a5beadbf3b85f2e0b951111).
+  [`da2c8ea`](https://github.com/rwiermer/CISIS_UTF8/commit/da2c8eaabb569b894996e5063264dc785bd5722c).
 - Toolchain: Emscripten 6.0.4, wasm32, 32-bit `LONGX`.
 - Native parity oracle: the same commit built as 32-bit Linux ISIS1660.
 - Green reference: GitHub Actions run
-  [`31408292524`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31408292524),
+  [`31409338871`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31409338871),
   2026-08-10.
 - Browser currently tested in CI: headless Chromium.
 
@@ -28,6 +28,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | Project workspace | Verified | `CisisProject` retains host-side files, absorbs returned outputs, and removes retained files inspected as absent after a run. |
 | Project snapshots | Verified | Snapshots use schema version 1 and defensive `Uint8Array` copies. |
 | IndexedDB persistence | Verified in Chromium | `CisisProjectStore` supports save, load, list, delete, and close. |
+| Portable project archive | Verified in Chromium | Deterministic binary archives preserve arbitrary file bytes without base64 and reject corrupt, oversized, duplicate, or escaping entries. |
 | Direct C API | Not implemented | IDE helpers currently translate to validated MX/WXIS command arguments. |
 | Serializable record model | Not implemented | Callers currently provide database files rather than structured records. |
 
@@ -35,27 +36,30 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 
 | Area | State | Verified coverage | Important gaps |
 | --- | --- | --- | --- |
-| PFT | Supported subset | literals, MFN, field selection, missing fields, repeated fields, a combining-character UTF-8 case, and one fatal syntax error | modes, subfields, broader functions/includes/errors, and asserted non-Latin output need focused cases |
+| PFT | Supported subset | literals, MFN, field/subfield selection, missing/repeated fields, uppercase mode, `nocc`, `size`, `left`, combining/non-Latin UTF-8, and one fatal syntax error | other modes, broader functions/includes, and more errors need focused cases |
 | IsisScript flow | Supported subset | display, fields, loops, CGI parameters, and nested includes | broader flow/error examples and precise source diagnostics |
 | IsisScript database work | Supported subset | ISO import/export, update writes, database reads, file deletion, Boolean search, and malformed-search reporting | record deletion, sort, XML conversion, and temporary-file workflows |
 | Database format | Supported subset | ISO2709 import/export and current ISIS1660 MST/XRF creation and reads | other historical layouts, large databases, deleted records, and endian portability |
 | FST and inversion | Supported subset | bundled CDS techniques 0, 2, and 4; full inversion through the in-process CISIS sorter | other techniques, stopword/table variants, and incremental inversion |
-| Search | Supported subset | MX and WXIS Boolean retrieval plus one WXIS malformed-expression path | broader syntax-error matrix, prefixes, sets, logs, and larger result sets |
-| UTF-8 | Supported subset | valid UTF-8 with a combining-character sequence | asserted accents/non-Latin output, table-driven case conversion, and deliberately invalid byte sequences |
+| Search | Supported subset | MX and WXIS Boolean retrieval, a compound `AND`, and one WXIS malformed-expression path | broader syntax-error matrix, prefixes, sets, logs, and larger result sets |
+| UTF-8 | Supported subset | combining characters plus asserted Polish, Japanese, and Greek output | table-driven case conversion and deliberately invalid byte sequences |
 
 ## Differential scenarios
 
-Nine scenarios currently execute against both native 32-bit and Wasm builds:
+Ten scenarios currently execute against both native 32-bit and Wasm builds:
 
 1. UTF-8 sequence input and PFT output.
-2. WXIS hello/display output.
-3. WXIS field definition and loop control.
-4. WXIS nested includes and calls.
-5. Fatal PFT syntax error with structured format diagnostics.
-6. WXIS file deletion and inspected post-run file state.
-7. ISO import/export, MST/XRF reads, and missing/repeated-field PFT output.
-8. ISO import, FST full inversion, MX search, WXIS search, and malformed search.
-9. WXIS ISO import/update followed by an MX database read.
+2. Polish, Japanese, and Greek PFT output.
+3. WXIS hello/display output.
+4. WXIS field definition and loop control.
+5. WXIS nested includes and calls.
+6. Fatal PFT syntax error with structured format diagnostics.
+7. WXIS file deletion and inspected post-run file state.
+8. ISO import/export, database reads, and PFT missing/repeated fields,
+   subfields, uppercase mode, and functions.
+9. ISO import, FST full inversion, simple/compound MX search, WXIS search, and
+   malformed search.
+10. WXIS ISO import/update followed by an MX database read.
 
 The differential runner compares exit status, stdout, stderr, and requested
 output-file SHA-256 checksums. It normalizes CRLF to LF and removes one terminal
