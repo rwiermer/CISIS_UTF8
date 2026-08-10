@@ -5,6 +5,7 @@ import type { WorkerRunRequest, WorkerRunResponse } from "./protocol.js";
 import type {
   CisisInputFile,
   CisisRecord,
+  CisisRecordData,
   CisisRecordField,
   CisisModuleUrls,
   CisisRunRequest,
@@ -15,6 +16,7 @@ import type {
   IndexRequest,
   IsisScriptRequest,
   SearchRequest,
+  WriteRecordsRequest,
 } from "./types.js";
 
 export type {
@@ -22,6 +24,7 @@ export type {
   CisisDiagnosticCategory,
   CisisInputFile,
   CisisRecord,
+  CisisRecordData,
   CisisRecordField,
   CisisModuleUrls,
   CisisProgram,
@@ -33,6 +36,7 @@ export type {
   IndexRequest,
   IsisScriptRequest,
   SearchRequest,
+  WriteRecordsRequest,
 } from "./types.js";
 export {
   CisisProject,
@@ -41,6 +45,7 @@ export {
   type ProjectIndexRequest,
   type ProjectIsisScriptRequest,
   type ProjectSearchRequest,
+  type ProjectWriteRecordsRequest,
 } from "./project.js";
 export {
   CisisProjectStore,
@@ -61,6 +66,10 @@ const DEFAULT_ENVIRONMENT_ALLOWLIST = [
   "QUERY_STRING",
   "REQUEST_METHOD",
 ] as const;
+const MAX_RECORD_MFN = 1_000_000;
+const MAX_RECORDS_PER_WRITE = 1_000;
+const INDEX_EXTENSIONS = ["cnt", "ifp", "l01", "l02", "n01", "n02"] as const;
+const SILENT_PFT = "pft=if 1=0 then mfn fi";
 
 interface QueuedRun {
   request: CisisRunRequest;
@@ -85,6 +94,16 @@ function positiveInteger(name: string, value: number | undefined): number | unde
     throw new Error(`CISIS ${name} must be a positive integer`);
   }
   return value;
+}
+
+function concatenate(parts: readonly Uint8Array[]): Uint8Array {
+  const output = new Uint8Array(parts.reduce((total, part) => total + part.byteLength, 0));
+  let offset = 0;
+  for (const part of parts) {
+    output.set(part, offset);
+    offset += part.byteLength;
+  }
+  return output;
 }
 
 function optionalTimeout(timeoutMs: number | undefined): { timeoutMs?: number } {
@@ -259,6 +278,123 @@ export class CisisRunner {
       ...optionalTimeout(request.timeoutMs),
     });
     return { ...formatted, durationMs: imported.durationMs + formatted.durationMs };
+  }
+
+  async writeRecords(request: WriteRecordsRequest): Promise<CisisRunResult> {
+    const database = databaseName(request.database);
+    if (request.records.length > MAX_RECORDS_PER_WRITE) {
+      throw new Error(`A record write is limited to ${MAX_RECORDS_PER_WRITE} records`);
+    }
+
+    const mfns = new Set<number>();
+    const usedTags = new Set<number>();
+    for (const record of request.records) {
+      if (!Number.isSafeInteger(record.mfn) || record.mfn < 1 || record.mfn > MAX_RECORD_MFN) {
+        throw new Error(`CISIS record MFN must be between 1 and ${MAX_RECORD_MFN}: ${record.mfn}`);
+      }
+      if (mfns.has(record.mfn)) throw new Error(`Duplicate CISIS record MFN: ${record.mfn}`);
+      if (record.status !== "active" && record.status !== "deleted") {
+        throw new Error(`Invalid CISIS record status at MFN ${record.mfn}: ${String(record.status)}`);
+      }
+      mfns.add(record.mfn);
+      for (const field of record.fields) usedTags.add(field.tag);
+    }
+
+    const targetFiles = [`${database}.mst`, `${database}.xrf`];
+    const indexFiles = INDEX_EXTENSIONS.map((extension) => `${database}.${extension}`);
+    const files = Object.fromEntries(
+      Object.entries(request.files ?? {}).filter(([path]) => !indexFiles.includes(path)),
+    );
+    const hasMst = Object.hasOwn(files, targetFiles[0]!);
+    const hasXrf = Object.hasOwn(files, targetFiles[1]!);
+    if (!request.replace && hasMst !== hasXrf) {
+      throw new Error(`CISIS database requires both ${targetFiles.join(" and ")}`);
+    }
+    const create = request.replace === true || !hasMst;
+    const invalidatedStates = Object.fromEntries(indexFiles.map((path) => [path, false]));
+
+    if (request.records.length === 0) {
+      if (!create) {
+        return {
+          exitCode: 0,
+          stdout: "",
+          stderr: "",
+          files: {},
+          fileStates: {},
+          diagnostics: [],
+          durationMs: 0,
+        };
+      }
+      const empty = await this.run({
+        program: "mx",
+        args: ["null", "count=0", `create=${database}`, "now"],
+        files,
+        returnFiles: targetFiles,
+        ...optionalTimeout(request.timeoutMs),
+      });
+      return empty.exitCode === 0
+        ? { ...empty, fileStates: { ...empty.fileStates, ...invalidatedStates } }
+        : { ...empty, files: {}, fileStates: {} };
+    }
+
+    let metadataTag = 999;
+    while (metadataTag > 0 && usedTags.has(metadataTag)) metadataTag -= 1;
+    if (metadataTag === 0) {
+      throw new Error("Structured record writes require one unused CISIS field tag");
+    }
+
+    const iso = concatenate(request.records.map((record) => encodeIso2709Record({
+      fields: [
+        { tag: metadataTag, value: `^m${record.mfn}^s${record.status === "deleted" ? "D" : "A"}` },
+        ...record.fields,
+      ],
+    })));
+    const imported = await this.run({
+      program: "mx",
+      args: [
+        "iso=marc=__cisis/records.iso",
+        `proc='='v${metadataTag}^m`,
+        `${create ? "create" : "copy"}=${database}`,
+        SILENT_PFT,
+        "now",
+      ],
+      files: { ...files, "__cisis/records.iso": iso },
+      returnFiles: targetFiles,
+      ...optionalTimeout(request.timeoutMs),
+    });
+    if (imported.exitCode !== 0) return { ...imported, files: {}, fileStates: {} };
+
+    const source = "__cisis/write-source";
+    const selected = request.records.map((record) => `mfn=${record.mfn}`).join(" or ");
+    const finalized = await this.run({
+      program: "mx",
+      args: [
+        source,
+        `proc=if ${selected} then if v${metadataTag}^s='D' then 'D.' fi,'d${metadataTag}' fi`,
+        `copy=${database}`,
+        SILENT_PFT,
+        "now",
+      ],
+      files: {
+        ...files,
+        ...imported.files,
+        [`${source}.mst`]: imported.files[targetFiles[0]!]!,
+        [`${source}.xrf`]: imported.files[targetFiles[1]!]!,
+      },
+      returnFiles: targetFiles,
+      ...optionalTimeout(request.timeoutMs),
+    });
+    return {
+      ...finalized,
+      stdout: imported.stdout + finalized.stdout,
+      stderr: imported.stderr + finalized.stderr,
+      diagnostics: [...imported.diagnostics, ...finalized.diagnostics],
+      durationMs: imported.durationMs + finalized.durationMs,
+      files: finalized.exitCode === 0 ? finalized.files : {},
+      fileStates: finalized.exitCode === 0
+        ? { ...finalized.fileStates, ...invalidatedStates }
+        : {},
+    };
   }
 
   index(request: IndexRequest): Promise<CisisRunResult> {

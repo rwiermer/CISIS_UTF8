@@ -75,3 +75,32 @@ test("project removes files reported missing after a run", async () => {
 
   assert.equal(project.hasFile("temporary.txt"), false);
 });
+
+test("project absorbs structured record writes and drops stale indexes", async () => {
+  const runner = {
+    writeRecords: async () => ({
+      ...result({
+        "catalog.mst": new Uint8Array([4]),
+        "catalog.xrf": new Uint8Array([5]),
+      }),
+      fileStates: {
+        "catalog.ifp": false,
+        "catalog.l01": false,
+      },
+    }),
+  } as unknown as CisisRunner;
+  const project = new CisisProject(runner, {
+    "catalog.mst": new Uint8Array([1]),
+    "catalog.xrf": new Uint8Array([2]),
+    "catalog.ifp": new Uint8Array([3]),
+    "catalog.l01": new Uint8Array([3]),
+  });
+
+  await project.writeRecords({
+    database: "catalog",
+    records: [{ mfn: 7, status: "active", fields: [{ tag: 24, value: "Updated" }] }],
+  });
+
+  assert.deepEqual(project.listFiles(), ["catalog.mst", "catalog.xrf"]);
+  assert.deepEqual(project.readFile("catalog.mst"), new Uint8Array([4]));
+});

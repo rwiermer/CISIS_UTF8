@@ -7,10 +7,13 @@ export interface CisisRecordField {
   value: CisisInputFile;
 }
 
-export interface CisisRecord {
-  mfn?: 1;
-  status?: "active";
+export interface CisisRecordData {
   fields: readonly CisisRecordField[];
+}
+
+export interface CisisRecord extends CisisRecordData {
+  mfn: number;
+  status: "active" | "deleted";
 }
 
 export type CisisDiagnosticCategory =
@@ -83,8 +86,16 @@ export interface FormatRequest {
 }
 
 export interface FormatRecordRequest {
-  record: CisisRecord;
+  record: CisisRecordData;
   pft: string;
+  timeoutMs?: number;
+}
+
+export interface WriteRecordsRequest {
+  database: string;
+  records: readonly CisisRecord[];
+  files?: Record<string, CisisInputFile>;
+  replace?: boolean;
   timeoutMs?: number;
 }
 

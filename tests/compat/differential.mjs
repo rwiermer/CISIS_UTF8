@@ -35,6 +35,16 @@ function normalizeOutput(value, allTerminalNewlines = false) {
   return allTerminalNewlines ? normalized.replace(/\n+$/, "") : normalized.replace(/\n$/, "");
 }
 
+function concatenate(parts) {
+  const output = new Uint8Array(parts.reduce((total, part) => total + part.byteLength, 0));
+  let offset = 0;
+  for (const part of parts) {
+    output.set(part, offset);
+    offset += part.byteLength;
+  }
+  return output;
+}
+
 async function loadInputs(root, definitions) {
   const files = new Map();
   for (const [name, definition] of Object.entries(definitions)) {
@@ -42,7 +52,9 @@ async function loadInputs(root, definitions) {
       ? await readFile(resolve(root, definition.source))
       : definition.record
         ? encodeIso2709Record(definition.record)
-      : Buffer.from(definition.text, "utf8");
+        : definition.records
+          ? concatenate(definition.records.map(encodeIso2709Record))
+          : Buffer.from(definition.text, "utf8");
     files.set(name, data);
   }
   return files;

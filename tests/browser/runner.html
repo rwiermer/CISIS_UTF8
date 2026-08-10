@@ -119,6 +119,33 @@
         }
         migratedStore.close();
 
+        const editableProject = runner.createProject({
+          "catalog.ifp": new Uint8Array([1, 2, 3]),
+        });
+        await editableProject.writeRecords({
+          database: "catalog",
+          replace: true,
+          records: [
+            { mfn: 5, status: "active", fields: [{ tag: 24, value: "日本語 Five" }] },
+            { mfn: 9, status: "deleted", fields: [{ tag: 24, value: "Nine" }] },
+          ],
+        });
+        const afterCreate = await editableProject.format({
+          database: "catalog",
+          pft: "mfn(6),'|',v24/",
+        });
+        await editableProject.writeRecords({
+          database: "catalog",
+          records: [
+            { mfn: 9, status: "active", fields: [{ tag: 24, value: "Nine updated" }] },
+            { mfn: 12, status: "deleted", fields: [{ tag: 24, value: "Twelve" }] },
+          ],
+        });
+        const afterUpdate = await editableProject.format({
+          database: "catalog",
+          pft: "mfn(6),'|',v24/",
+        });
+
         const formatted = await restored.format({
           database: "cds",
           pft: "mfn(4),'|',v24/",
@@ -145,6 +172,11 @@
             fileBytes: [...migrated.files["legacy.txt"]],
             updatedAtIndex: migratedIndex,
             corruptionCode,
+          },
+          recordEditing: {
+            afterCreate: afterCreate.stdout,
+            afterUpdate: afterUpdate.stdout,
+            files: editableProject.listFiles(),
           },
           deleted: {
             exitCode: deleted.exitCode,

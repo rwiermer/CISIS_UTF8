@@ -35,6 +35,21 @@ const recordFormatted = await runner.formatRecord({
   pft: "v24/, (v70/)",
 });
 
+await project.writeRecords({
+  database: "cds",
+  records: [
+    {
+      mfn: 12,
+      status: "active",
+      fields: [
+        { tag: 24, value: "A replacement title" },
+        { tag: 70, value: "First author" },
+      ],
+    },
+    { mfn: 15, status: "deleted", fields: [] },
+  ],
+});
+
 await project.index({
   database: "cds",
   fst: "70 0 MHU,(V70/)\n24 4 MHU,V24\n",
@@ -64,8 +79,11 @@ runner.dispose();
 
 Structured records preserve field order, repeated tags, UTF-8 values, and PFT
 subfield syntax. `formatRecord()` imports exactly one active record as MFN 1;
-preserving arbitrary MFNs or deleted records requires the future database
-editing API.
+it does not preserve caller-supplied MFNs or deleted status. `writeRecords()`
+provides that database boundary for batches of up to 1,000 records and MFNs up
+to 1,000,000. Writes preserve explicit MFNs and logical deletion status, replace
+complete records, and invalidate retained inverted-file companions so the IDE
+cannot search a stale index.
 
 The low-level `run()` method remains available for MX or WXIS arguments not yet
 represented by a helper. Pass `returnFiles` when a low-level operation creates

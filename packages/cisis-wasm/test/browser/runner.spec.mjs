@@ -33,5 +33,10 @@ test("runs MX/PFT and WXIS in the packaged browser worker", async ({ page }) => 
     updatedAtIndex: true,
     corruptionCode: "corrupt",
   });
+  expect(result.recordEditing).toEqual({
+    afterCreate: "000005|日本語 Five",
+    afterUpdate: "000005|日本語 Five\n000009|Nine updated",
+    files: ["catalog.mst", "catalog.xrf"],
+  });
   expect(result.deleted).toEqual({ exitCode: 0, fileState: false, retained: false });
 });

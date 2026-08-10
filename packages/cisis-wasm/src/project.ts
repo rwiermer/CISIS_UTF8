@@ -9,6 +9,7 @@ import type {
   IndexRequest,
   IsisScriptRequest,
   SearchRequest,
+  WriteRecordsRequest,
 } from "./types.js";
 
 export interface CisisProjectSnapshot {
@@ -20,6 +21,7 @@ export type ProjectFormatRequest = Omit<FormatRequest, "files">;
 export type ProjectIndexRequest = Omit<IndexRequest, "files">;
 export type ProjectSearchRequest = Omit<SearchRequest, "files">;
 export type ProjectIsisScriptRequest = Omit<IsisScriptRequest, "files">;
+export type ProjectWriteRecordsRequest = Omit<WriteRecordsRequest, "files">;
 
 function bytes(data: CisisInputFile): Uint8Array {
   const value = typeof data === "string" ? new TextEncoder().encode(data) : data;
@@ -82,6 +84,12 @@ export class CisisProject {
 
   async index(request: ProjectIndexRequest): Promise<CisisRunResult> {
     const result = await this.runner.index({ ...request, files: this.#fileRecord() });
+    this.#absorb(result);
+    return result;
+  }
+
+  async writeRecords(request: ProjectWriteRecordsRequest): Promise<CisisRunResult> {
+    const result = await this.runner.writeRecords({ ...request, files: this.#fileRecord() });
     this.#absorb(result);
     return result;
   }

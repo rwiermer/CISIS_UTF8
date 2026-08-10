@@ -158,6 +158,75 @@ export const scenarios = [
     ],
   },
   {
+    name: "structured-record-database",
+    group: "database",
+    files: {
+      "records.iso": {
+        records: [
+          {
+            fields: [
+              { tag: 999, value: "^m5^sA" },
+              { tag: 24, value: "日本語 Five" },
+            ],
+          },
+          {
+            fields: [
+              { tag: 999, value: "^m9^sD" },
+              { tag: 24, value: "Nine" },
+            ],
+          },
+        ],
+      },
+    },
+    steps: [
+      {
+        program: "mx",
+        args: [
+          "iso=marc=records.iso",
+          "proc='='v999^m",
+          "create=records",
+          "pft=if 1=0 then mfn fi",
+          "now",
+        ],
+        outputs: ["records.mst", "records.xrf"],
+        expected: { exitCode: 0, stdout: "", stderr: "" },
+      },
+      {
+        program: "mx",
+        args: [
+          "iso=marc=records.iso",
+          "proc='='v999^m",
+          "create=source",
+          "pft=if 1=0 then mfn fi",
+          "now",
+        ],
+        outputs: ["source.mst", "source.xrf"],
+        expected: { exitCode: 0, stdout: "", stderr: "" },
+      },
+      {
+        program: "mx",
+        args: [
+          "source",
+          "proc=if mfn=5 or mfn=9 then if v999^s='D' then 'D.' fi,'d999' fi",
+          "copy=records",
+          "pft=if 1=0 then mfn fi",
+          "now",
+        ],
+        outputs: ["records.mst", "records.xrf"],
+        expected: { exitCode: 0, stdout: "", stderr: "" },
+      },
+      {
+        program: "mx",
+        args: ["records", "pft=mfn(6),'|',v24/", "lw=0", "now"],
+        expected: {
+          exitCode: 0,
+          stdout: "000005|日本語 Five",
+          stderr: "",
+        },
+      },
+    ],
+  },
+  {
     name: "wxis-file-delete",
     group: "isisscript",
     files: {

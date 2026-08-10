@@ -1,4 +1,4 @@
-import type { CisisRecord, CisisRecordField } from "./types.js";
+import type { CisisRecordData, CisisRecordField } from "./types.js";
 
 const HEADER_BYTES = 24;
 const DIRECTORY_ENTRY_BYTES = 12;
@@ -29,13 +29,7 @@ function fieldBytes(field: CisisRecordField): Uint8Array {
   return data;
 }
 
-export function encodeIso2709Record(record: CisisRecord): Uint8Array {
-  if (record.mfn !== undefined && record.mfn !== 1) {
-    throw new Error("Single-record ISO import assigns MFN 1");
-  }
-  if (record.status !== undefined && record.status !== "active") {
-    throw new Error("Single-record ISO import creates an active record");
-  }
+export function encodeIso2709Record(record: CisisRecordData): Uint8Array {
   const fields = record.fields.map((field) => ({ field, data: fieldBytes(field) }));
   const baseAddress = HEADER_BYTES + fields.length * DIRECTORY_ENTRY_BYTES + 1;
   let dataBytes = 1;

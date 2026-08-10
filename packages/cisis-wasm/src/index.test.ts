@@ -210,6 +210,118 @@ test("formats an ordered structured record through ISO import", async () => {
   runner.dispose();
 });
 
+test("writes structured records with explicit MFNs and invalidates indexes", async () => {
+  const worker = new MockWorker();
+  const runner = new CisisRunner({
+    moduleUrls: { mx: "mx.mjs", wxis: "wxis.mjs" },
+    workerFactory: () => worker as unknown as Worker,
+  });
+  const pending = runner.writeRecords({
+    database: "catalog",
+    replace: true,
+    records: [
+      { mfn: 5, status: "active", fields: [{ tag: 24, value: "Five" }] },
+      { mfn: 9, status: "deleted", fields: [{ tag: 24, value: "Nine" }] },
+    ],
+    files: { "catalog.ifp": new Uint8Array([9]) },
+  });
+
+  assert.deepEqual(worker.messages[0]?.request.args, [
+    "iso=marc=__cisis/records.iso",
+    "proc='='v999^m",
+    "create=catalog",
+    "pft=if 1=0 then mfn fi",
+    "now",
+  ]);
+  assert.equal(worker.messages[0]?.request.files?.["catalog.ifp"], undefined);
+  worker.respond({
+    type: "result",
+    id: worker.messages[0]!.id,
+    result: {
+      ...success(""),
+      files: {
+        "catalog.mst": new Uint8Array([1]),
+        "catalog.xrf": new Uint8Array([2]),
+      },
+      durationMs: 2,
+    },
+  });
+  await Promise.resolve();
+
+  assert.equal(worker.messages[1]?.request.args[0], "__cisis/write-source");
+  assert.match(worker.messages[1]?.request.args[1] ?? "", /mfn=5 or mfn=9/);
+  assert.equal(worker.messages[1]?.request.args[2], "copy=catalog");
+  worker.respond({
+    type: "result",
+    id: worker.messages[1]!.id,
+    result: {
+      ...success(""),
+      files: {
+        "catalog.mst": new Uint8Array([3]),
+        "catalog.xrf": new Uint8Array([4]),
+      },
+      durationMs: 3,
+    },
+  });
+
+  const written = await pending;
+  assert.equal(written.durationMs, 5);
+  assert.equal(written.fileStates["catalog.ifp"], false);
+  assert.equal(written.fileStates["catalog.n02"], false);
+  runner.dispose();
+});
+
+test("rejects invalid structured database records", async () => {
+  const runner = new CisisRunner();
+  await assert.rejects(
+    runner.writeRecords({
+      database: "catalog",
+      records: [
+        { mfn: 2, status: "active", fields: [] },
+        { mfn: 2, status: "deleted", fields: [] },
+      ],
+    }),
+    /Duplicate CISIS record MFN: 2/,
+  );
+  runner.dispose();
+});
+
+test("does not expose a partially finalized structured write", async () => {
+  const worker = new MockWorker();
+  const runner = new CisisRunner({ workerFactory: () => worker as unknown as Worker });
+  const pending = runner.writeRecords({
+    database: "catalog",
+    replace: true,
+    records: [{ mfn: 1, status: "active", fields: [] }],
+  });
+  const databaseFiles = {
+    "catalog.mst": new Uint8Array([1]),
+    "catalog.xrf": new Uint8Array([2]),
+  };
+  worker.respond({
+    type: "result",
+    id: worker.messages[0]!.id,
+    result: { ...success(""), files: databaseFiles },
+  });
+  await Promise.resolve();
+  worker.respond({
+    type: "result",
+    id: worker.messages[1]!.id,
+    result: {
+      ...success(""),
+      exitCode: 1,
+      stderr: "finalization failed",
+      files: databaseFiles,
+    },
+  });
+
+  const failed = await pending;
+  assert.equal(failed.exitCode, 1);
+  assert.deepEqual(failed.files, {});
+  assert.deepEqual(failed.fileStates, {});
+  runner.dispose();
+});
+
 test("rejects unsafe database names in IDE helpers", () => {
   const runner = new CisisRunner();
   assert.throws(() => runner.format({ database: "../outside", pft: "v1" }), /escapes/);
