@@ -1,20 +1,91 @@
 # WebAssembly compatibility matrix
 
-This matrix describes behavior covered by native 32-bit versus WebAssembly
-differential tests. It is narrower than the complete CISIS feature set.
+## Scope and baseline
 
-| Area | Status | Differential coverage |
+This document records behavior verified for the browser-targeted ISIS1660 UTF-8
+configuration. It is a tested subset of CISIS, not a claim that every MX option,
+PFT extension, FST technique, or IsisScript task works in a browser.
+
+- Package version: `0.1.0-dev` (private preview).
+- Validated implementation: commit
+  [`f0c0df5`](https://github.com/rwiermer/CISIS_UTF8/commit/f0c0df51e6010bfee5076d86f787babb470ac7e5).
+- Toolchain: Emscripten 6.0.4, wasm32, 32-bit `LONGX`.
+- Native parity oracle: the same commit built as 32-bit Linux ISIS1660.
+- Green reference: GitHub Actions run
+  [`31406656764`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31406656764),
+  2026-08-10.
+- Browser currently tested in CI: headless Chromium.
+
+## Runtime and API
+
+| Capability | State | Current behavior |
 | --- | --- | --- |
-| PFT | Supported subset | literals, MFN, field selection, combining and non-Latin UTF-8 |
-| IsisScript | Supported subset | display, fields, loops, CGI parameters, nested includes, database import, search |
-| Database | Supported | ISO2709 import, ISIS1660 MST/XRF creation and reads, WXIS update writes |
-| FST/index | Supported subset | bundled CDS techniques 0, 2, and 4; full inversion; six companion files |
-| Search | Supported subset | MX and WXIS Boolean retrieval against a generated inverted file |
-| Browser execution | Supported | dedicated Worker, request isolation, timeouts, returned files |
-| Persistent projects | Supported | versioned snapshots retained in the host with optional IndexedDB storage |
-| Shell commands | Excluded | browser workers cannot create child processes |
-| Raw sockets | Excluded | networking belongs to the JavaScript host |
-| Host paths | Excluded | absolute paths and request-root traversal are rejected |
+| Low-level execution | Verified | `run()` invokes MX or WXIS in a module Worker and returns status, stdout, stderr, diagnostics, duration, and requested files. |
+| PFT formatting helper | Verified | `format()` runs a PFT against caller-supplied ISIS1660 database files. |
+| FST indexing helper | Verified | `index()` performs full inversion and returns `.cnt`, `.ifp`, `.l01`, `.l02`, `.n01`, and `.n02`. |
+| Search helper | Verified | `search()` executes an MX Boolean expression against supplied database and index files. |
+| IsisScript helper | Verified subset | `runIsisScript()` maps source, parameters, and files to request-local WXIS arguments. |
+| Project workspace | Verified | `CisisProject` retains host-side files, resubmits them to isolated runs, and absorbs explicitly returned outputs. |
+| Project snapshots | Verified | Snapshots use schema version 1 and defensive `Uint8Array` copies. |
+| IndexedDB persistence | Verified in Chromium | `CisisProjectStore` supports save, load, list, delete, and close. |
+| Direct C API | Not implemented | IDE helpers currently translate to validated MX/WXIS command arguments. |
+| Serializable record model | Not implemented | Callers currently provide database files rather than structured records. |
+
+## Language and workflow coverage
+
+| Area | State | Verified coverage | Important gaps |
+| --- | --- | --- | --- |
+| PFT | Supported subset | literals, MFN, field selection, and a combining-character UTF-8 case | modes, subfields, missing/repeated fields, functions, includes, syntax errors, and asserted non-Latin output need focused cases |
+| IsisScript flow | Supported subset | display, fields, loops, CGI parameters, and nested includes | broader flow/error examples and precise source diagnostics |
+| IsisScript database work | Supported subset | ISO import, update writes, database reads, and Boolean search | export, delete, sort, XML conversion, and temporary-file workflows |
+| Database format | Supported subset | ISO2709 import and current ISIS1660 MST/XRF creation and reads | other historical layouts, large databases, deleted records, and endian portability |
+| FST and inversion | Supported subset | bundled CDS techniques 0, 2, and 4; full inversion through the in-process CISIS sorter | other techniques, stopword/table variants, and incremental inversion |
+| Search | Supported subset | MX and WXIS Boolean retrieval against a newly generated inverted file | syntax-error matrix, prefixes, sets, logs, and larger result sets |
+| UTF-8 | Supported subset | valid UTF-8 with a combining-character sequence | asserted accents/non-Latin output, table-driven case conversion, and deliberately invalid byte sequences |
+
+## Differential scenarios
+
+Seven scenarios currently execute against both native 32-bit and Wasm builds:
+
+1. UTF-8 sequence input and PFT output.
+2. WXIS hello/display output.
+3. WXIS field definition and loop control.
+4. WXIS nested includes and calls.
+5. ISO import followed by MST/XRF record reads.
+6. ISO import, FST full inversion, MX search, and WXIS search.
+7. WXIS ISO import/update followed by an MX database read.
+
+The differential runner compares exit status, stdout, stderr, and requested
+output-file SHA-256 checksums. It normalizes CRLF to LF and removes one terminal
+LF because Emscripten delivers output through line callbacks. Generated MST/XRF
+and all six inverted-file companions match the native 32-bit build byte-for-byte
+in covered scenarios. CI publishes the JSON report with the Wasm artifact.
+
+## Browser execution and limits
+
+| Concern | Current behavior |
+| --- | --- |
+| Isolation | Every request uses a fresh Emscripten module and a separate MEMFS root. |
+| Scheduling | One `CisisRunner` serializes requests through one Worker. |
+| Cancellation | A timeout terminates and replaces the Worker; the next queued request can continue. |
+| Paths | Mapped input/output paths and helper database names reject empty, absolute, drive-qualified, and request-root-escaping values. Low-level CLI arguments are not parsed. |
+| Environment | Only allowlisted request-local keys are accepted; defaults are `CIPAR`, `LANG`, `LC_ALL`, `QUERY_STRING`, and `REQUEST_METHOD`. |
+| Default timeout | 5 seconds. |
+| Default input limit | 64 MiB per request. |
+| Default captured output limit | 4 MiB per request. |
+| Default returned-file limit | 64 MiB per request. |
+| Wasm memory | 64 MiB initial memory, growth enabled, 256 MiB maximum. |
+| HTML | PFT/WXIS HTML is returned as untrusted text; sanitization belongs to the IDE. |
+
+## Unsupported and unverified host behavior
+
+| Capability | State |
+| --- | --- |
+| Host filesystem paths | The browser host filesystem is unavailable. Mapped file paths and helper database names are rejected at the TypeScript boundary; arbitrary low-level CLI arguments remain a documented hardening boundary. |
+| Child processes and shell commands | Not part of the supported browser API. Full inversion no longer needs host `sort`; explicit structured rejection for every remaining legacy `system()` path is not yet verified. |
+| Raw sockets | Not part of the supported browser API; networking must be performed by JavaScript before execution. |
+| Temporary files | MEMFS can provide request-local files, but representative IsisScript temporary-file cases are not yet in the differential suite. |
+| Persistent Wasm filesystem | Not used. Persistence is explicit in the JavaScript project layer and IndexedDB store. |
 
 ## Known variance
 
@@ -24,11 +95,13 @@ entire import stream. That incidental import stdout is retained in the JSON
 report but excluded from string comparison. Exit status, stderr, generated
 MST/XRF checksums, and subsequent selected PFT output remain compared.
 
-## Not yet covered
+## Remaining release work
 
-- PFT syntax diagnostics and invalid-byte fixtures designed for exact output.
-- Database delete, sort, and incremental inversion.
-- IsisScript XML conversion, temporary files, and explicit unsupported-operation errors.
-- Large-database limits and repeat-run performance budgets.
-- IndexedDB schema migrations, storage quota handling, and multi-tab coordination.
-- Firefox and WebKit browser execution.
+- Add focused PFT and search syntax-error cases and invalid-byte fixtures.
+- Cover database export, delete, sort, and incremental inversion.
+- Cover IsisScript XML, temporary files, and unsupported-operation errors.
+- Add Firefox and WebKit Playwright jobs.
+- Measure cold start, repeated-run latency, memory, upload time, and artifact size.
+- Define IndexedDB migration, quota, corruption, and multi-tab behavior.
+- Add sanitizer builds, fuzz smoke tests, release provenance, checksums, SBOM,
+  and LGPL source/relinking deliverables.

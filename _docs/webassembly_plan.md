@@ -21,7 +21,7 @@ WebAssembly has a 32-bit address space in the initial implementation. The exact
 record and database size limits must be measured and documented rather than
 inferred from the misleadingly named native `SIXTY_FOUR` build flag.
 
-## Current-state findings
+## Baseline findings and current constraints
 
 - At the fork point, the repository had no automated build or test workflow.
   Native, 32-bit compatibility, package, and Emscripten jobs now run in GitHub
@@ -29,66 +29,69 @@ inferred from the misleadingly named native `SIXTY_FOUR` build flag.
 - Nine tracked files originally contained unresolved Git conflict markers,
   including `cisis.h`, `cifm3.c`, `mx.mak`, `wxis.mak`, and three WXIS source
   files. Those conflicts have been resolved and all profiles compile.
-- The build is a collection of generated makefiles and shell scripts. It mixes
-  configuration, compilation, and artifact copying and has no reusable library
-  target.
+- The legacy build remains a collection of generated makefiles and shell
+  scripts, but CMake is now the supported entry point for native, native-32, and
+  Wasm targets. There is not yet a reusable CISIS library target.
 - MX and WXIS are process-oriented entry points. They use global state, standard
   input/output, process environment variables, `exit`, and synchronous files.
 - The formatter is embedded in the wider CISIS runtime rather than exposed as a
   small stable API. PFT support should initially reuse the proven engine through
   MX, then gain a narrow C wrapper after parity tests exist.
-- The repository contains useful compatibility fixtures but few assertions:
-  roughly one hundred IsisScript examples under `wxis_src/examples`, a CDS
-  ISO/PFT/FST dataset, compiled CDS databases, and UTF-8 fixtures under
-  `CISIS_UNI_Win/projects/mx/test`.
+- The repository contains roughly one hundred IsisScript examples, a CDS
+  ISO/PFT/FST dataset, compiled databases, and UTF-8 fixtures. Seven workflows
+  are now differential scenarios; most examples have not yet been promoted to
+  asserted tests.
 - Browser-incompatible or security-sensitive features are reachable from the
   current code: `system`, environment mutation, host directory traversal,
   sockets, and temporary-file helpers. Each needs an explicit policy.
 
 ## Implementation status
 
-- **M0 native baseline:** MX and WXIS have isolated CMake targets. Native and
-  32-bit ISIS1660 builds pass, including ISO import and golden PFT output.
-- **M1 Emscripten executable:** Emscripten 6.0.4 produces modularized MX and
-  WXIS ES modules with MEMFS. Both execute in CI under Node.
-- **M2 browser runner:** the initial strict-TypeScript package serializes work
-  through a module Worker, isolates each request, validates virtual paths and
-  environment keys, captures output, returns selected files, classifies basic
-  diagnostics, enforces resource limits, and replaces timed-out workers.
-- **Browser verification:** headless Chromium loads the staged package with its
-  default module URLs and executes both MX/PFT and WXIS.
-- **M3 differential suite:** a data-driven runner now executes the same PFT,
-  UTF-8, WXIS, ISO import, and database-read scenarios with native 32-bit and
-  WebAssembly binaries. It compares status and narrowly normalized output,
-  carries generated databases between steps, and publishes a checksum-bearing
-  JSON report. The legacy-encoded ISO import's incidental record dump is kept
-  in the report but excluded from text comparison because libc and Emscripten
-  decode its invalid UTF-8 bytes differently; its generated database files are
-  still compared byte-for-byte. Further examples can be promoted by extending
-  the scenario list.
-- **Next:** broaden M3 into FST/inverted-file search, database mutation, syntax
-  errors, includes, and the remaining grouped repository examples.
-- **IDE API bootstrap:** typed `format`, `index`, and `search` helpers now map
-  validated requests onto the parity-tested MX runtime. They intentionally keep
-  project state in the JavaScript host. A `CisisProject` workspace now retains
-  explicitly returned files between isolated runs, produces versioned
-  snapshots, and optionally saves them in IndexedDB. A direct C ABI, schema
-  migrations, quota handling, and performance budgets remain M5 work.
+The implementation is at an M5 preview. It supports useful browser workflows,
+but it is not yet a hardened or published release.
+
+| Milestone | State | Current result |
+| --- | --- | --- |
+| M0 native baseline | Operational | Separate MX and WXIS CMake targets build on native 64-bit and native 32-bit Linux; the 32-bit build is the Wasm parity oracle. |
+| M1 Emscripten executable | Operational | Pinned Emscripten 6.0.4 produces separate modularized ES modules for MX and WXIS with MEMFS. |
+| M2 browser runner | Partial | Strict-TypeScript Worker runner, isolation, validation, limits, cancellation by Worker replacement, returned files, and basic diagnostics are implemented. Chromium is green; Firefox is not yet in CI. |
+| M3 differential suite | Partial | Seven data-driven scenarios cover PFT/UTF-8, WXIS flow and nested includes, ISO import, MST/XRF reads, WXIS update writes, full FST inversion, and MX/WXIS search. More parser errors and mutation cases remain. |
+| M4 WXIS IsisScript | Partial | Hello/display, fields, loops, CGI parameters, includes, database import/update, and search match native behavior in covered cases. Host operations and XML/error cases remain to be classified and tested. |
+| M5 IDE APIs and persistence | Partial | CLI-backed `format`, `index`, `search`, and `runIsisScript` helpers, `CisisProject`, versioned snapshots, and optional IndexedDB storage are implemented. A direct C ABI, record model, migrations, quotas, and performance budgets remain. |
+| M6 hardening and release | Not started | Cross-browser coverage, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
+
+The current green reference is implementation commit
+[`f0c0df5`](https://github.com/rwiermer/CISIS_UTF8/commit/f0c0df51e6010bfee5076d86f787babb470ac7e5),
+validated by GitHub Actions run
+[`31406656764`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31406656764)
+on 2026-08-10.
+
+### Next priorities
+
+1. Close M3/M4 correctness gaps with PFT/search syntax errors, missing and
+   repeated fields, database export/delete/sort, incremental inversion, WXIS
+   temporary files/XML, and explicit unsupported-host-operation tests.
+2. Complete M5 project portability with an export/import archive, IndexedDB
+   migration and quota behavior, a serializable record model, and measured
+   browser performance budgets. Add a direct C ABI only where measurements or
+   diagnostics show a clear benefit over the parity-tested CLI boundary.
+3. Start M6 with Firefox and WebKit CI, sanitizer/fuzz jobs, artifact budgets,
+   reproducible release metadata, SBOM generation, and LGPL deliverables.
 
 ## Architecture
 
 ### Build outputs
 
-Produce one npm package with two layers:
+The build produces one npm package with two layers:
 
-1. `cisis-core.wasm` and generated Emscripten glue, built as an ES module.
+1. Separate `cisis-mx.wasm` and `cisis-wxis.wasm` binaries with modularized ES
+   module glue.
 2. A handwritten TypeScript API that owns workers, the virtual filesystem,
    input validation, output capture, cancellation, and structured diagnostics.
 
-Start with a single module containing MX and WXIS to minimize source surgery.
-Measure size and initialization time before deciding whether to split them. Pin
-the Emscripten SDK version in a container and CI; do not depend on a developer's
-global toolchain.
+The modules remain separate because MX and WXIS have independent legacy entry
+points and source sets. Initialization time and the size trade-off versus a
+shared core have not yet been measured. CI pins Emscripten 6.0.4.
 
 Use stable Emscripten modularized ES-module output, not the experimental
 `MODULARIZE=instance` mode. Use the default MEMFS virtual filesystem initially.
@@ -108,9 +111,16 @@ pthreads initially: they add deployment header requirements without addressing
 the current global-state design.
 
 Each request gets an isolated virtual root such as `/work/<request-id>`. Uploaded
-or generated files are copied into that root, arguments are normalized, and
-path escape is rejected. MEMFS changes are returned explicitly to the caller.
-Optional IndexedDB persistence can be added later at the TypeScript boundary.
+files and requested output paths are normalized and path escape is rejected;
+database names used by the high-level helpers receive equivalent validation.
+Low-level CLI argument strings are preserved for CISIS compatibility and are not
+parsed as paths. They cannot access the browser host filesystem, but a stricter
+virtual-root policy for those arguments remains hardening work. MEMFS changes
+are returned explicitly to the caller.
+`CisisProject` retains explicitly returned files in the JavaScript host and
+resubmits them to later isolated runs. Versioned project snapshots can be saved
+to IndexedDB through `CisisProjectStore`; the Wasm module itself does not mount
+or depend on IndexedDB.
 
 ### Public API
 
@@ -123,6 +133,8 @@ type CisisRunRequest = {
   files?: Record<string, Uint8Array | string>;
   env?: Record<string, string>;
   timeoutMs?: number;
+  maxOutputBytes?: number;
+  maxReturnedFileBytes?: number;
   returnFiles?: string[];
 };
 
@@ -136,20 +148,26 @@ type CisisRunResult = {
 };
 ```
 
-Add IDE-oriented helpers only after the runner is covered by parity tests:
+The package also exposes CLI-backed IDE helpers:
 
 ```ts
-format({ record, pft, tables }): Promise<FormatResult>
+format({ database, pft, files, from, count }): Promise<CisisRunResult>
 runIsisScript({ source, params, files }): Promise<CisisRunResult>
-search({ database, expression, options }): Promise<SearchResult>
-index({ database, fst, stopwords }): Promise<IndexResult>
+search({ database, expression, pft, files, from, count }): Promise<CisisRunResult>
+index({ database, fst, files, index }): Promise<CisisRunResult>
+
+const project = runner.createProject(files)
+project.snapshot(): CisisProjectSnapshot
+store.save(name, snapshot): Promise<void>
+store.load(name): Promise<CisisProjectSnapshot | undefined>
 ```
 
-Diagnostics should retain raw CISIS output and add a best-effort category,
-message, source, line, and column. Do not promise precise PFT source locations
-until the native parser can expose them reliably.
+The helpers currently translate to validated MX/WXIS arguments rather than a
+new C ABI. Diagnostics retain raw output and provide a best-effort category,
+message, and severity. Source, line, and column are not implemented because the
+native parsers do not expose them reliably.
 
-### Browser capability policy
+### Current browser capability policy
 
 Classify host-dependent behavior instead of silently emulating it:
 
@@ -159,17 +177,20 @@ Classify host-dependent behavior instead of silently emulating it:
 | Standard output and error | Captured and returned separately |
 | Environment reads | Allowlisted request-local values only |
 | Environment writes | Request-local and discarded after execution |
-| Temporary files | Supported inside the request root with deterministic cleanup |
+| Temporary files | Available in request-local MEMFS; representative WXIS cases still need tests |
 | Includes and `cat()` | Supported only for files inside the request root |
-| `system()` and child processes | Disabled with a structured unsupported error |
-| Raw sockets | Disabled; browser networking remains in the TypeScript host |
-| Host filesystem paths | Rejected |
-| Persistent database changes | Deferred; explicit export first, IndexedDB later |
+| `system()` and child processes | Unsupported; full inversion uses an in-process sorter, but explicit rejection coverage remains |
+| Raw sockets | Unsupported; browser networking remains in the TypeScript host |
+| Host filesystem paths | Unavailable; mapped file paths and helper database names are rejected, while low-level CLI arguments remain unparsed |
+| Persistent database changes | Explicit returned files retained by `CisisProject`; optional IndexedDB snapshots |
 | PFT-produced HTML | Returned as untrusted text; sanitization belongs to the IDE |
 
 ## Delivery milestones
 
 ### M0: recover a trustworthy native baseline
+
+**Status: operational, with repository cleanup, sanitizer, and provenance work
+remaining.**
 
 - Resolve all conflict markers from source history or a known good release; do
   not choose conflict sides solely because one compiles.
@@ -185,6 +206,11 @@ Exit criterion: a clean checkout builds both programs in CI and repeats the same
 golden results twice.
 
 ### M1: first Emscripten executable
+
+**Status: operational.** MX and WXIS both build and run. The implementation
+uses two modules rather than the originally proposed combined module. Debug
+Wasm artifacts, source-map coverage, and containerized toolchain packaging
+remain.
 
 - Add a pinned Emscripten container and `CMakePresets.json` or equivalent build
   entry, with separate compile and link flags.
@@ -203,6 +229,10 @@ MEMFS, run MX, and reproduce native PFT output byte-for-byte.
 
 ### M2: browser-safe runner package
 
+**Status: partial.** The runner contract, Worker isolation, validation, limits,
+timeouts, and Chromium coverage are implemented. Firefox coverage required by
+the original exit criterion remains.
+
 - Implement the TypeScript request/result contract and worker protocol.
 - Capture stdout/stderr without shared global callbacks between requests.
 - Add file upload/download helpers, path validation, UTF-8 conversion, resource
@@ -214,6 +244,10 @@ Exit criterion: Chromium and Firefox run PFT examples without blocking the UI,
 and timeout recovery leaves the next run usable.
 
 ### M3: differential compatibility suite
+
+**Status: partial.** The runner and published compatibility matrix exist. The
+current seven scenarios cover the main database/index/search path, but not the
+full example groups listed below.
 
 - Build a native fixture runner that emits a JSON manifest containing command,
   input checksums, exit code, stdout, stderr, and output-file checksums.
@@ -241,6 +275,10 @@ silently.
 
 ### M4: WXIS IsisScript
 
+**Status: partial.** Representative flow, includes, import/update, and search
+are covered. Temporary-file behavior, XML, error paths, and explicit rejection
+of unsupported host operations remain.
+
 - Compile the WXIS entry point and feed CGI-like parameters through request-local
   input rather than the browser's real process environment.
 - Start with `hello.xis`, `format.xis`, `fieldocc.xis`, includes, CDS listing, and
@@ -256,6 +294,11 @@ native WXIS; unsupported host operations fail explicitly and safely.
 
 ### M5: direct IDE APIs and persistence
 
+**Status: partial.** Database-oriented TypeScript helpers, host-managed project
+files, versioned snapshots, and IndexedDB persistence are implemented. The
+direct C ABI, serializable record model, export archive, migrations, quota
+handling, and measurements remain.
+
 - Add the narrow C ABI needed by `format`, `search`, and `index`; avoid exposing
   internal C structs or allocator ownership to JavaScript.
 - Define a serializable record model that preserves repeated fields, subfields,
@@ -270,6 +313,8 @@ Exit criterion: the IDE can edit a PFT or IsisScript, execute it against an
 uploaded or sample database, display diagnostics, and export all changed files.
 
 ### M6: hardening and release
+
+**Status: not started.**
 
 - Test current Chromium, Firefox, and WebKit in Playwright at desktop and mobile
   viewport sizes; execution remains in a worker on all platforms.
@@ -287,48 +332,37 @@ public package API.
 
 ## Test and CI layout
 
+The current repository has:
+
 ```text
-wasm/
-  CMakeLists.txt
-  Dockerfile
-  include/cisis_wasm.h
-  src/cisis_wasm.c
-packages/cisis-wasm/
-  src/index.ts
-  src/worker.ts
-  test/
-tests/
-  fixtures/
-    cds/
-    pft/
-    utf8/
-    wxis/
-  golden/
-  native/
-  browser/
+packages/cisis-wasm/       TypeScript API, Worker, project storage, and tests
+tests/native/              native compatibility smoke test
+tests/wasm/                generated-module and packaged-runtime smoke tests
+tests/compat/              data-driven native/Wasm differential scenarios
+tests/browser/             browser fixture page and static test server
+.github/workflows/         native, native-32, package, and Wasm/browser jobs
 ```
 
-Recommended CI jobs:
+CI currently builds native 64-bit, native 32-bit, and pinned Emscripten targets;
+runs package unit tests; stages the Wasm package; compares native 32-bit and
+Wasm results; runs Chromium through Playwright; and uploads Wasm modules, the
+package distribution, and the differential JSON report.
 
-1. Native Linux build plus golden tests.
-2. Native sanitizer build plus parser smoke tests.
-3. Pinned Emscripten debug and release builds.
-4. Node differential tests against the Wasm package.
-5. Playwright browser tests served with production-like headers.
-6. Artifact-size and exported-symbol checks to catch accidental API growth.
+Still required are sanitizer jobs, Emscripten debug artifacts, Firefox/WebKit,
+artifact-size and exported-symbol budgets, and complete artifact provenance.
 
-Generated outputs must include provenance: source commit, Emscripten version,
-build configuration, and fixture manifest version.
+## Current compatibility summary
 
-## Initial compatibility matrix
+The detailed evidence and exclusions are maintained in
+[`webassembly_compatibility.md`](webassembly_compatibility.md).
 
 | Area | First release | Later or excluded |
 | --- | --- | --- |
-| PFT formatting | Full parity for covered UTF-8 fixtures | Undocumented dialect extensions remain test-driven |
-| IsisScript | Flow, formatting, files, DB read/search/update | Shell and socket operations excluded |
-| FST/indexing | In-memory generation and search | Very large databases after measurement |
+| PFT formatting | Parity for covered UTF-8 fixtures | Missing/repeated fields, syntax errors, and undocumented extensions remain test-driven |
+| IsisScript | Flow, includes, DB import/read/search/update | XML, temporary-file, error, shell, and socket cases remain |
+| FST/indexing | Full inversion and search for bundled CDS FST | Other techniques, incremental inversion, and large databases |
 | Database formats | ISIS1660 MST/XRF and companion index files | Other layout variants after fixture coverage |
-| Persistence | Explicit file import/export | IndexedDB project storage in M5 |
+| Persistence | Host-managed files, versioned snapshots, optional IndexedDB | Migrations, quotas, multi-tab coordination, export archive |
 | Concurrency | One serialized runtime per worker | Worker pool only after memory measurement |
 | Networking | JavaScript host fetches files before execution | Native socket compatibility excluded |
 
@@ -348,8 +382,8 @@ build configuration, and fixture manifest version.
   status, output, and file mutations are captured.
 - **Browser lockups:** worker execution, timeouts, memory ceilings, and worker
   replacement are part of the API contract.
-- **Scope expansion:** PFT and database reads land before full WXIS, indexing,
-  persistence, or an IDE UI.
+- **Scope expansion:** keep compatibility evidence ahead of new WXIS surface,
+  direct C APIs, and an IDE UI.
 
 ## Definition of done for the end goal
 
@@ -366,3 +400,8 @@ The WebAssembly work is complete enough for an in-browser test IDE when:
 - unsafe host capabilities are unavailable and report actionable errors;
 - runs can be cancelled without reloading the page; and
 - release artifacts are reproducible, versioned, documented, and LGPL-compliant.
+
+The current preview satisfies the basic Worker execution, typed result,
+database/PFT/FST/search, representative WXIS, cancellation, and project
+persistence portions. It does not yet satisfy the breadth, explicit host-error,
+cross-browser, structured-record, performance, or release requirements.
