@@ -1,0 +1,19 @@
+import { expect, test } from "@playwright/test";
+
+test("runs MX/PFT and WXIS in the packaged browser worker", async ({ page }) => {
+  await page.goto("/tests/browser/runner.html");
+  await page.waitForFunction(() => window.__cisisTestResult || window.__cisisTestError);
+
+  const error = await page.evaluate(() => window.__cisisTestError);
+  expect(error).toBeUndefined();
+  const result = await page.evaluate(() => window.__cisisTestResult);
+  expect(result.mx).toEqual({
+    exitCode: 0,
+    stdout: "This is a test in UTF8",
+    stderr: "",
+  });
+  expect(result.wxis.exitCode).toBe(0);
+  expect(result.wxis.stderr).toBe("");
+  expect(result.wxis.stdout).toContain("Content-type: text/html");
+  expect(result.wxis.stdout).toContain("Hello world!");
+});

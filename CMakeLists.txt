@@ -122,9 +122,11 @@ function(cisis_configure_target target is_wxis)
       -sENVIRONMENT=web,worker,node
       -sFORCE_FILESYSTEM=1
       -sALLOW_MEMORY_GROWTH=1
+      -sINITIAL_MEMORY=67108864
+      -sMAXIMUM_MEMORY=268435456
       -sEXIT_RUNTIME=1
       -sINVOKE_RUN=0
-      -sEXPORTED_RUNTIME_METHODS=FS,callMain)
+      -sEXPORTED_RUNTIME_METHODS=FS,ENV,callMain)
     set_target_properties(${target} PROPERTIES SUFFIX ".mjs")
   endif()
 endfunction()

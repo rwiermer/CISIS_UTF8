@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>CISIS Wasm worker test</title>
+  </head>
+  <body>
+    <output id="status">Running</output>
+    <script type="module">
+      import { CisisRunner } from "/packages/cisis-wasm/dist/index.js";
+
+      const status = document.querySelector("#status");
+      const runner = new CisisRunner({ defaultTimeoutMs: 10_000 });
+
+      try {
+        const mx = await runner.run({
+          program: "mx",
+          args: ["seq=utf8.txt", "pft=v1/", "now"],
+          files: { "utf8.txt": "This is a test in UTF8\n" },
+        });
+        const source = await fetch("/wxis_src/examples/hello.xis").then((response) => response.text());
+        const wxis = await runner.runIsisScript({ source });
+        window.__cisisTestResult = {
+          mx: { exitCode: mx.exitCode, stdout: mx.stdout, stderr: mx.stderr },
+          wxis: { exitCode: wxis.exitCode, stdout: wxis.stdout, stderr: wxis.stderr },
+        };
+        status.value = "Passed";
+      } catch (error) {
+        window.__cisisTestError = error instanceof Error ? error.message : String(error);
+        status.value = "Failed";
+      } finally {
+        runner.dispose();
+      }
+    </script>
+  </body>
+</html>

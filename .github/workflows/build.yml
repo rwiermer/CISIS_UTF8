@@ -19,6 +19,15 @@ jobs:
       - name: Test
         run: ctest --preset native
 
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install package dependencies
+        run: npm ci --prefix packages/cisis-wasm
+      - name: Test TypeScript package
+        run: npm test --prefix packages/cisis-wasm
+
   native-32:
     runs-on: ubuntu-latest
     steps:
@@ -44,16 +53,31 @@ jobs:
         run: cmake --preset wasm
       - name: Build
         run: cmake --build --preset wasm --parallel 2
+      - name: Install and test runtime package
+        run: |
+          npm ci --prefix packages/cisis-wasm
+          npm test --prefix packages/cisis-wasm
+          cp build/wasm/cisis-mx.mjs build/wasm/cisis-mx.wasm packages/cisis-wasm/dist/
+          cp build/wasm/cisis-wxis.mjs build/wasm/cisis-wxis.wasm packages/cisis-wasm/dist/
       - name: Test generated modules
-        run: >-
-          node tests/wasm/smoke.mjs
-          "$PWD/build/wasm/cisis-mx.mjs"
-          "$PWD/build/wasm/cisis-wxis.mjs"
-          "$PWD"
+        run: |
+          node tests/wasm/smoke.mjs \
+            "$PWD/build/wasm/cisis-mx.mjs" \
+            "$PWD/build/wasm/cisis-wxis.mjs" \
+            "$PWD"
+          node tests/wasm/package-smoke.mjs \
+            "$PWD/build/wasm/cisis-mx.mjs" \
+            "$PWD/build/wasm/cisis-wxis.mjs" \
+            "$PWD"
+      - name: Install Chromium
+        run: npx --prefix packages/cisis-wasm playwright install --with-deps chromium
+      - name: Test browser worker
+        run: npm run test:browser --prefix packages/cisis-wasm
       - uses: actions/upload-artifact@v4
         with:
           name: cisis-wasm
           path: |
             build/wasm/*.mjs
             build/wasm/*.wasm
+            packages/cisis-wasm/dist/
           if-no-files-found: error

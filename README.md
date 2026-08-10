@@ -29,6 +29,32 @@ With an activated Emscripten SDK:
       "$PWD/build/wasm/cisis-wxis.mjs" \
       "$PWD"
 
+Browser worker package:
+
+    npm ci --prefix packages/cisis-wasm
+    npm test --prefix packages/cisis-wasm
+
+The package runs one isolated Emscripten module per request inside a reusable
+Web Worker. Calls are serialized and a timed-out execution terminates and
+replaces the worker:
+
+    import { CisisRunner } from "@abcd-community/cisis-wasm";
+
+    const cisis = new CisisRunner({
+      moduleUrls: {
+        mx: new URL("./cisis-mx.mjs", import.meta.url),
+        wxis: new URL("./cisis-wxis.mjs", import.meta.url)
+      }
+    });
+
+    const result = await cisis.run({
+      program: "mx",
+      args: ["seq=input.txt", "pft=v1/", "now"],
+      files: { "input.txt": "This is a test in UTF8\n" }
+    });
+
+    cisis.dispose();
+
 
 Some Documentation:
 
@@ -294,4 +320,3 @@ Open cisis.h file and change the default configuration to the following one:
        EXCFMXML=1;
        MXFUN=0;
        IFLOADFUN=0;
-

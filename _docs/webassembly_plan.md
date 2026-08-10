@@ -23,10 +23,12 @@ inferred from the misleadingly named native `SIXTY_FOUR` build flag.
 
 ## Current-state findings
 
-- The repository has no automated build or test workflow.
-- Nine tracked files contain unresolved Git conflict markers, including
-  `cisis.h`, `cifm3.c`, `mx.mak`, `wxis.mak`, and three WXIS source files. A
-  clean, reproducible native build is therefore milestone zero.
+- At the fork point, the repository had no automated build or test workflow.
+  Native, 32-bit compatibility, package, and Emscripten jobs now run in GitHub
+  Actions.
+- Nine tracked files originally contained unresolved Git conflict markers,
+  including `cisis.h`, `cifm3.c`, `mx.mak`, `wxis.mak`, and three WXIS source
+  files. Those conflicts have been resolved and all profiles compile.
 - The build is a collection of generated makefiles and shell scripts. It mixes
   configuration, compilation, and artifact copying and has no reusable library
   target.
@@ -42,6 +44,21 @@ inferred from the misleadingly named native `SIXTY_FOUR` build flag.
 - Browser-incompatible or security-sensitive features are reachable from the
   current code: `system`, environment mutation, host directory traversal,
   sockets, and temporary-file helpers. Each needs an explicit policy.
+
+## Implementation status
+
+- **M0 native baseline:** MX and WXIS have isolated CMake targets. Native and
+  32-bit ISIS1660 builds pass, including ISO import and golden PFT output.
+- **M1 Emscripten executable:** Emscripten 6.0.4 produces modularized MX and
+  WXIS ES modules with MEMFS. Both execute in CI under Node.
+- **M2 browser runner:** the initial strict-TypeScript package serializes work
+  through a module Worker, isolates each request, validates virtual paths and
+  environment keys, captures output, returns selected files, classifies basic
+  diagnostics, enforces resource limits, and replaces timed-out workers.
+- **Browser verification:** headless Chromium loads the staged package with its
+  default module URLs and executes both MX/PFT and WXIS.
+- **Next:** M3 differential coverage should expand beyond the current CDS,
+  UTF-8, PFT, and `hello.xis` smoke cases into the grouped repository examples.
 
 ## Architecture
 

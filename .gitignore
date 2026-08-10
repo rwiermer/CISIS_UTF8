@@ -1,5 +1,10 @@
 .DS_Store
 build/
+node_modules/
+packages/cisis-wasm/dist/
+packages/cisis-wasm/playwright-report/
+packages/cisis-wasm/test-dist/
+packages/cisis-wasm/test-results/
 *.o
 /mx
 /wxis
