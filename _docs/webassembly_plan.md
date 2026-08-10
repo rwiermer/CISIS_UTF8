@@ -61,9 +61,9 @@ but it is not yet a hardened or published release.
 | M6 hardening and release | Partial | CI runs the packaged Worker workflow in Chromium, Firefox, and WebKit, enforces Wasm artifact budgets, and publishes compatibility/performance reports. Mobile viewport coverage, sanitizer/fuzz jobs, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
 
 The current green reference is implementation commit
-[`7907906`](https://github.com/rwiermer/CISIS_UTF8/commit/790790694bb04f7e93b75c76c8ebfe219798ec8d),
+[`c1490e8`](https://github.com/rwiermer/CISIS_UTF8/commit/c1490e8b12e203ee58b759ac456b02bd9e5c569f),
 validated by GitHub Actions run
-[`31414950441`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31414950441)
+[`31415883996`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31415883996)
 on 2026-08-10.
 
 ### Next priorities
