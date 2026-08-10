@@ -90,6 +90,7 @@ export const scenarios = [
       {
         program: "mx",
         args: ["seq=input.txt", "pft=if p(v1) then v1/", "now"],
+        normalizeTerminalNewlines: ["stderr"],
         expected: {
           exitCode: 1,
           stdout: "",

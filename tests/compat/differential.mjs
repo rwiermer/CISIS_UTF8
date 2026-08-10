@@ -29,8 +29,9 @@ function checksum(data) {
   return createHash("sha256").update(data).digest("hex");
 }
 
-function normalizeOutput(value) {
-  return value.replaceAll("\r\n", "\n").replace(/\n$/, "");
+function normalizeOutput(value, allTerminalNewlines = false) {
+  const normalized = value.replaceAll("\r\n", "\n");
+  return allTerminalNewlines ? normalized.replace(/\n+$/, "") : normalized.replace(/\n$/, "");
 }
 
 async function loadInputs(root, definitions) {
@@ -85,13 +86,13 @@ async function collectNativeStates(directory, names) {
   return states;
 }
 
-function comparableResult(result, outputNames) {
+function comparableResult(result, outputNames, step) {
   const outputChecksums = {};
   for (const name of outputNames ?? []) outputChecksums[name] = checksum(result.files[name]);
   return {
     exitCode: result.exitCode,
-    stdout: normalizeOutput(result.stdout),
-    stderr: normalizeOutput(result.stderr),
+    stdout: normalizeOutput(result.stdout, step.normalizeTerminalNewlines?.includes("stdout")),
+    stderr: normalizeOutput(result.stderr, step.normalizeTerminalNewlines?.includes("stderr")),
     outputChecksums,
     fileStates: result.fileStates,
   };
@@ -199,8 +200,8 @@ for (const scenario of scenarios) {
       requestId += 1;
 
       for (const [name, data] of Object.entries(wasmRaw.files)) wasmFiles.set(name, data);
-      const native = comparableResult(nativeRaw, step.outputs);
-      const wasm = comparableResult(wasmRaw, step.outputs);
+      const native = comparableResult(nativeRaw, step.outputs, step);
+      const wasm = comparableResult(wasmRaw, step.outputs, step);
       assertEquivalent(scenario.name, stepIndex, step, native, wasm);
       assertExpected(scenario.name, stepIndex, native, step.expected);
       scenarioReport.steps.push({
@@ -214,6 +215,7 @@ for (const scenario of scenarios) {
           fileStates: true,
         },
         expected: step.expected,
+        normalization: step.normalizeTerminalNewlines,
         native,
         wasm,
       });
