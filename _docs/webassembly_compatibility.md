@@ -8,11 +8,11 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 
 - Package version: `0.1.0-dev` (private preview).
 - Validated implementation: commit
-  [`2bbe695`](https://github.com/rwiermer/CISIS_UTF8/commit/2bbe6952a7e17ef758408f076fe8505abaaaebbe).
+  [`ee9220e`](https://github.com/rwiermer/CISIS_UTF8/commit/ee9220e0a8c2016679a65b2cd7fd63f3a95f9f2e).
 - Toolchain: Emscripten 6.0.4, wasm32, 32-bit `LONGX`.
 - Native parity oracle: the same commit built as 32-bit Linux ISIS1660.
 - Green reference: GitHub Actions run
-  [`31419373725`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31419373725),
+  [`31421539863`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31421539863),
   2026-08-10.
 - Browsers tested in CI: headless desktop Chromium, Firefox, and WebKit, plus
   Pixel-class Chromium and iPhone-class WebKit viewports.
@@ -47,7 +47,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | IsisScript flow | Supported subset | display, fields, loops, CGI parameters, and nested includes | broader flow/error examples and precise source diagnostics |
 | IsisScript database work | Supported subset | ISO import/export, update writes, database reads, file deletion, Boolean search, and malformed-search reporting | record deletion, sort, XML conversion, and temporary-file workflows |
 | Database format | Supported subset | ISO2709 import/export, current ISIS1660 MST/XRF creation/reads, active/deleted structured readback, sparse MFNs, complete-record upserts, and logical deletion | other historical layouts, large databases, and endian portability |
-| FST and inversion | Supported subset | bundled CDS techniques 0, 2, and 4; full inversion through the in-process CISIS sorter | other techniques, stopword/table variants, and incremental inversion |
+| FST and inversion | Supported subset | bundled CDS techniques 0, 2, and 4 in native parity; browser-verified technique 8 title/author/subject/place/publisher prefixes, exact technique 0 year prefix, unprefixed technique 4 discovery terms, and full inversion through the in-process CISIS sorter | techniques 1, 3, 5, 6, and 7; stopword/table variants; and incremental inversion |
 | Search | Supported subset | MX and WXIS Boolean retrieval, a compound `AND`, and one WXIS malformed-expression path | broader syntax-error matrix, prefixes, sets, logs, and larger result sets |
 | UTF-8 | Supported subset | combining characters plus asserted Polish, Japanese, and Greek output | table-driven case conversion and deliberately invalid byte sequences |
 | FDT | Supported host-side subset | fixed-column parsing, field names/tags, subfields, maximum byte length, repeatability, and structured-record validation | ABCD pipe-delimited FDT variants, data-entry worksheets, and legacy FDT-driven XML conversion |

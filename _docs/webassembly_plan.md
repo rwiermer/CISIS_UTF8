@@ -61,14 +61,14 @@ but it is not yet a hardened or published release.
 | M6 hardening and release | Partial | CI runs the packaged Worker and playground workflows in desktop Chromium, Firefox, and WebKit plus mobile Chromium/WebKit viewports, enforces Wasm artifact budgets, publishes compatibility/performance reports, and can deploy the playground to GitHub Pages. Sanitizer/fuzz jobs, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
 
 The current green reference is implementation commit
-[`2bbe695`](https://github.com/rwiermer/CISIS_UTF8/commit/2bbe6952a7e17ef758408f076fe8505abaaaebbe),
+[`ee9220e`](https://github.com/rwiermer/CISIS_UTF8/commit/ee9220e0a8c2016679a65b2cd7fd63f3a95f9f2e),
 validated by GitHub Actions run
-[`31419373725`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31419373725)
+[`31421539863`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31421539863)
 on 2026-08-10.
 
 The interactive playground is deployed at
 <https://rwiermer.github.io/CISIS_UTF8/> by Pages run
-[`31419373340`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31419373340).
+[`31421539903`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31421539903).
 
 ### Next priorities
 
@@ -386,7 +386,7 @@ The detailed evidence and exclusions are maintained in
 | --- | --- | --- |
 | PFT formatting | Parity for covered combining/non-Latin UTF-8, subfields, modes, functions, missing/repeated fields, and one syntax error | More functions/errors and undocumented extensions remain test-driven |
 | IsisScript | Flow, includes, DB import/read/search/update | XML, temporary-file, error, shell, and socket cases remain |
-| FST/indexing | Full inversion and search for bundled CDS FST | Other techniques, incremental inversion, and large databases |
+| FST/indexing | Full inversion and search for bundled CDS FST; realistic playground index with title/author/subject/place/publisher/year namespaces and general discovery terms | Other techniques, incremental inversion, and large databases |
 | Database formats | ISIS1660 MST/XRF and companion index files; active/deleted structured readback, MFN/status-preserving writes, and host-side legacy FDT validation | Other layout variants and FDT-driven legacy XML conversion after fixture coverage |
 | Persistence | Host-managed files, versioned snapshots, IndexedDB schema migration and typed failures, deterministic import/export archive | Quota budgets/recovery and multi-tab coordination |
 | Concurrency | One serialized runtime per worker | Worker pool only after memory measurement |
