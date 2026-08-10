@@ -83,13 +83,40 @@ function comparableResult(result, outputNames) {
   };
 }
 
+function textDifference(native, wasm) {
+  let offset = 0;
+  while (offset < native.length && native[offset] === wasm[offset]) offset += 1;
+  const start = Math.max(0, offset - 40);
+  const end = offset + 80;
+  return {
+    nativeLength: native.length,
+    wasmLength: wasm.length,
+    nativeSha256: checksum(Buffer.from(native)),
+    wasmSha256: checksum(Buffer.from(wasm)),
+    firstDifference: offset,
+    nativeContext: native.slice(start, end),
+    wasmContext: wasm.slice(start, end),
+  };
+}
+
 function assertEquivalent(scenario, stepIndex, native, wasm) {
-  const nativeJson = JSON.stringify(native, null, 2);
-  const wasmJson = JSON.stringify(wasm, null, 2);
-  if (nativeJson !== wasmJson) {
-    throw new Error(
-      `${scenario} step ${stepIndex + 1} differs\n--- native\n${nativeJson}\n--- wasm\n${wasmJson}`,
-    );
+  const differences = {};
+  if (native.exitCode !== wasm.exitCode) {
+    differences.exitCode = { native: native.exitCode, wasm: wasm.exitCode };
+  }
+  for (const stream of ["stdout", "stderr"]) {
+    if (native[stream] !== wasm[stream]) {
+      differences[stream] = textDifference(native[stream], wasm[stream]);
+    }
+  }
+  if (JSON.stringify(native.outputChecksums) !== JSON.stringify(wasm.outputChecksums)) {
+    differences.outputChecksums = {
+      native: native.outputChecksums,
+      wasm: wasm.outputChecksums,
+    };
+  }
+  if (Object.keys(differences).length > 0) {
+    throw new Error(`${scenario} step ${stepIndex + 1} differs\n${JSON.stringify(differences, null, 2)}`);
   }
 }
 
