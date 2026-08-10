@@ -8,16 +8,18 @@ run useful CISIS programs entirely in a Web Worker, without a server-side CISIS
 installation, while returning deterministic output and diagnostics to the IDE.
 
 The first compatibility target is the UTF-8 ISIS1660 configuration selected by
-`compile_wxis.sh`, adapted from its 64-bit native build to wasm32:
+`compile_wxis.sh`, adapted to wasm32. In this codebase `SIXTY_FOUR=1` selects a
+32-bit `LONGX`, so it is suitable for wasm32 but unsafe in a 64-bit native build
+because formatter instruction nodes store pointers in `LONGX`:
 
 ```text
 CIFFI=0 LIND=0 LIND4=0 ISISXL=1 ISISXL512=0
-SIXTY_FOUR=0 _FILE_OFFSET_BITS=0 _LARGEFILE64_SOURCE=0
+SIXTY_FOUR=1 _FILE_OFFSET_BITS=0 _LARGEFILE64_SOURCE=0
 ```
 
 WebAssembly has a 32-bit address space in the initial implementation. The exact
 record and database size limits must be measured and documented rather than
-inferred from the native `SIXTY_FOUR` build flag.
+inferred from the misleadingly named native `SIXTY_FOUR` build flag.
 
 ## Current-state findings
 

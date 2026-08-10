@@ -1021,13 +1021,11 @@ int main(int argc,       /* quantity of arguments */
 
     //chrono_init("chrono_wxis.txt");
 
-    mainFunc(argc, argv, envv, NULL);
+    errorCode = mainFunc(argc, argv, envv, NULL);
 
     //chrono_end();
 
     /* Return error code */
-    exit(errorCode);
-
-    return 0;
+    return errorCode;
 }
 #endif /* GEN_MAIN */

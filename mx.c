@@ -50,7 +50,7 @@
 #include "cirun.h"   /* CISIS Interface runtime declarations */
 #endif /* CIAPI */
 
-void main(argc,argv)
+int main(argc,argv)
 int argc;
 char *argv[];
 {
@@ -67,7 +67,7 @@ char *argv[];
 #else /* MXFUN */
     rc=mxexec(argc,argv);
 #endif /* MXFUN */
-    exit(rc);
+    return rc;
 }
 
 #endif //MX_SERX

@@ -1,0 +1,59 @@
+name: Build and test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake --preset native
+      - name: Build
+        run: cmake --build --preset native --parallel 2
+      - name: Test
+        run: ctest --preset native
+
+  native-32:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install 32-bit compiler runtime
+        run: sudo apt-get update && sudo apt-get install --yes gcc-multilib
+      - name: Configure
+        run: cmake --preset native-32
+      - name: Build
+        run: cmake --build --preset native-32 --parallel 2
+      - name: Test
+        run: ctest --preset native-32
+
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 6.0.4
+          actions-cache-folder: emsdk-cache
+      - name: Configure
+        run: cmake --preset wasm
+      - name: Build
+        run: cmake --build --preset wasm --parallel 2
+      - name: Test generated modules
+        run: >-
+          node tests/wasm/smoke.mjs
+          "$PWD/build/wasm/cisis-mx.mjs"
+          "$PWD/build/wasm/cisis-wxis.mjs"
+          "$PWD"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cisis-wasm
+          path: |
+            build/wasm/*.mjs
+            build/wasm/*.wasm
+          if-no-files-found: error

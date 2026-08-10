@@ -1,0 +1,59 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "native",
+      "displayName": "Native development build",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/native",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "native-32",
+      "displayName": "32-bit native compatibility build",
+      "inherits": "native",
+      "binaryDir": "${sourceDir}/build/native-32",
+      "cacheVariables": {
+        "CISIS_LONGX_32": "ON",
+        "CMAKE_C_FLAGS": "-m32",
+        "CMAKE_EXE_LINKER_FLAGS": "-m32"
+      }
+    },
+    {
+      "name": "wasm",
+      "displayName": "Emscripten browser build",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/wasm",
+      "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "native", "configurePreset": "native" },
+    { "name": "native-32", "configurePreset": "native-32" },
+    { "name": "wasm", "configurePreset": "wasm" }
+  ],
+  "testPresets": [
+    {
+      "name": "native",
+      "configurePreset": "native",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "native-32",
+      "configurePreset": "native-32",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}

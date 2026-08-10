@@ -1,6 +1,35 @@
 CISIS
 
 
+WebAssembly work
+----------------
+
+The WebAssembly port is being developed with isolated CMake targets for MX and
+WXIS. See [_docs/webassembly_plan.md](_docs/webassembly_plan.md) for the staged
+compatibility plan.
+
+Native development build:
+
+    cmake --preset native
+    cmake --build --preset native
+    ctest --preset native
+
+The ISIS1660 compatibility tests require a 32-bit compiler and runtime:
+
+    cmake --preset native-32
+    cmake --build --preset native-32
+    ctest --preset native-32
+
+With an activated Emscripten SDK:
+
+    cmake --preset wasm
+    cmake --build --preset wasm
+    node tests/wasm/smoke.mjs \
+      "$PWD/build/wasm/cisis-mx.mjs" \
+      "$PWD/build/wasm/cisis-wxis.mjs" \
+      "$PWD"
+
+
 Some Documentation:
 
 http://wiki.bireme.org/en/index.php/CISIS
@@ -265,5 +294,4 @@ Open cisis.h file and change the default configuration to the following one:
        EXCFMXML=1;
        MXFUN=0;
        IFLOADFUN=0;
-
 

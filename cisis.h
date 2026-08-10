@@ -31,15 +31,9 @@ loadfile() and loadstw().
 CISIS environment
 ***************************************************** */
 #ifndef UTF8
-<<<<<<< HEAD
 #define UTF8        1
 #endif	/* UTF8 */
 #define GCC         1
-=======
-#define UTF8        0
-#endif	/* UTF8 */
-#define GCC         01
->>>>>>> e661efdc39fdc305c9886453dd9952b3b4c2e48d
 #if GCC
 #ifndef PACKED
 #define PACKED  __attribute__ ((aligned(2)))
@@ -47,21 +41,12 @@ CISIS environment
 #endif
 #endif
 
-<<<<<<< HEAD
-#define PC          1
-#define DOS32BITS   1
-#define MSC         0
-#define VAX         0
-#define MPE         0
-#define UNIX        0
-=======
 #define PC          0
 #define DOS32BITS   0
 #define MSC         0
 #define VAX         0
 #define MPE         0
-#define UNIX        01
->>>>>>> e661efdc39fdc305c9886453dd9952b3b4c2e48d
+#define UNIX        1
 #define SUN         0
 #define UNISYS      0
 #define UNISYSGDB   0
@@ -78,15 +63,6 @@ CISIS environment
 #define PCREADLINUX 0   /* Read Linux's M/F in PC */
 
 #ifdef CIAPI_SOURCE
-<<<<<<< HEAD
-#define CICPP       0   /* CISIS CPP preprocessor */
-#endif
-#ifdef ISIS_DLL
-#define CICPP       0   /* CISIS CPP preprocessor */
-#endif
-#ifdef CI_WINISIS
-#define CICPP       0   /* CISIS CPP preprocessor */
-=======
 #define CICPP       1   /* CISIS CPP preprocessor */
 #endif
 #ifdef ISIS_DLL
@@ -94,7 +70,6 @@ CISIS environment
 #endif
 #ifdef CI_WINISIS
 #define CICPP       1   /* CISIS CPP preprocessor */
->>>>>>> e661efdc39fdc305c9886453dd9952b3b4c2e48d
 #endif
 #ifndef CICPP
 #define CICPP       0   /* CISIS CPP preprocessor */
@@ -190,11 +165,7 @@ CISIS configuration
 #define CDMDL       0                   /* BRM CD-ROM Retrieval Interface */
 #endif
 #ifndef WWWISIS
-<<<<<<< HEAD
-#define WWWISIS     01
-=======
-#define WWWISIS     00
->>>>>>> e661efdc39fdc305c9886453dd9952b3b4c2e48d
+#define WWWISIS     0
 #endif /* WWWISIS */
 #define BIGREC      0                   /* BRM CD-ROM Retrieval Interface */
 #ifndef  LINDLUX
@@ -241,11 +212,7 @@ CISIS configuration
 #if CIFFI || LIND
 #define ISISXL      1                   /* Large keys - standard for CIFFI */
 #else
-<<<<<<< HEAD
-#define ISISXL      01                   /* Large keys */
-=======
-#define ISISXL      00                   /* Large keys */
->>>>>>> e661efdc39fdc305c9886453dd9952b3b4c2e48d
+#define ISISXL      0                    /* Large keys */
 #endif
 #endif
 #ifndef ISISXL512
@@ -504,7 +471,6 @@ CISIS/C++ DLL export
 #endif
 
 #if UNIX
-#include <malloc.h>
 #define ALLOC       malloc
 #define ALLOPARM    unsigned
 #define ALLOMAXV    INT_MAX /* 64000000L */ /* 64000L*/ /* 128000000L*/ /* UINT_MAX */
@@ -685,6 +651,7 @@ CIDBX.H
 ***************************************************** */
 
 #if MAXMFRL==0
+#undef MAXMFRL
 #if CIFFI
 #define MAXMFRL    1048576L     /* 1024*1024 ! */
 #else /* CIFFI */
@@ -702,11 +669,7 @@ CIDBX.H
 #define MAXMFRL     8192L       /* gdb */
 #endif /* UNIX || WWWISIS || USE_CIREC || DOS32BITS */
 #endif /* CIFFI */
-<<<<<<< HEAD
 #endif /* MAXMFRL */
-=======
-#endif /* MAXMFRL */	
->>>>>>> e661efdc39fdc305c9886453dd9952b3b4c2e48d
 
 #if ISISXL
 #define LE1         16          /* gdb ISISXL */
@@ -2516,11 +2479,7 @@ int fldocc(LONGX irec, int diridx);
 char *loadfile(char *gidbnp, char at, char *atp, char *areap, LONGX asize, char lf2x);
 char *loadstw(char *gidbnp, char *atp,char *areap,LONGX asize,int *nstws);
 #if UTF8
-<<<<<<< HEAD
 extern STRUCT_ISISUCTAB_UTF8 *loaductb_utf8(char *gidbnp,char *ucfilp);
-=======
-extern STRUCT_ISISUCTAB_UTF8 *loaductb_utf8(char *gidbnp,char *ucfilp);	
->>>>>>> e661efdc39fdc305c9886453dd9952b3b4c2e48d
 extern STRUCT_ISISACTAB_UTF8 *loadactb_utf8(char *gidbnp,char *acfilp);
 #else
 char *loaductb(char *gidbnp, char *uctbp, char *ucfilp);

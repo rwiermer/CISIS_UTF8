@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
-/* #include <ctype.h> */
+#include <ctype.h>
 
 #if 1
 #if CIAPI
@@ -32,7 +32,7 @@ void **xmxpp;
     *xmxpp=NULL;
     xmxp=(MXFUN_XMX *)ALLOC((ALLOPARM)sizeof(MXFUN_XMX));
     if (xmxp == (MXFUN_XMX *)ALLONULL) return(1);
-    memset((char *)xmxp,sizeof(MXFUN_XMX),0x00);
+    memset((char *)xmxp,0x00,sizeof(MXFUN_XMX));
     *xmxpp=(void *)xmxp;
 #include "mxfun.c"
     return(0);
@@ -301,7 +301,7 @@ int rc;
             if (!*n) continue;
             rev=999999999L - *n;
             printf("%09"_LD_"|%"_LD_"|%s\n",rev,*n,h); //table+hidx*hwidth
-            if (parmtrace) printf("[%9"_LD_"] %9"_LD_" %s\n",hidx,n,h); //table+hidx*hwidth
+            if (parmtrace) printf("[%9"_LD_"] %9"_LD_" %s\n",hidx,*n,h); //table+hidx*hwidth
         }
     }
     
@@ -581,4 +581,3 @@ int rc;
     exit(rc);
 #endif /* MXFUN */
 }
-

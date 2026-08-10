@@ -8,11 +8,7 @@ LINDLUX = 0
 PROCXSLT = 0
 _FILE_OFFSET_BITS = 0
 _LARGEFILE64_SOURCE = 0
-<<<<<<< HEAD
-SIXTY_FOUR = 1
-=======
 SIXTY_FOUR = 0
->>>>>>> e661efdc39fdc305c9886453dd9952b3b4c2e48d
 SUPERISIS = 0
 MAXMFRL=0
 
@@ -20,17 +16,13 @@ MAXMFRL=0
 CICONF1 = -DCIFFI=$(CIFFI) -DLIND=$(LIND) -DLIND4=$(LIND4) -DISISXL=$(ISISXL) -DISISXL512=$(ISISXL512) -DLINDLUX=$(LINDLUX) -DPROCXSLT=$(PROCXSLT) -D_FILE_OFFSET_BITS=$(_FILE_OFFSET_BITS) -D_LARGEFILE64_SOURCE=$(_LARGEFILE64_SOURCE) -DSIXTY_FOUR=$(SIXTY_FOUR) -DSUPERISIS=$(SUPERISIS) -DMAXMFRL=$(MAXMFRL)
 CICONF2 = -DCIWTF=1 -DINCPROCX=1 -DINCPRECX=1 -DEXCFMCGI=0 -DEXCFMXML=0 -D_GLIBC_VERSIONED_SOURCE
 
-<<<<<<< HEAD
-CC = "\Program Files (x86)\CodeBlocks\MinGW\bin\gcc"
-=======
 CC = cc
->>>>>>> e661efdc39fdc305c9886453dd9952b3b4c2e48d
 
 # Compilacao com processamento de xslt
 # CCFLAGS = -funsigned-char-Wall -I/usr/include/libxml2 -I/usr/local/include/libxslt
 # CCLIBS = -lm -lxslt -lxml2 -L/usr/local/lib
 
-CCFLAGS = -funsigned-char -Wall
+CCFLAGS = -funsigned-char -fcommon -Wall
 
 # Lib para Trigram Server Functions e log e sqrt
 CCLIBS = -lm
@@ -146,4 +138,3 @@ ciifu.o: ciifu.c ciifuh.c ciifu2.c ciupi.h cisis.h
 cicgi.o: cicgi.c cisis.h
 	 echo cicgi..
 	 $(CC) $(CCOPTS) cicgi.c
-
