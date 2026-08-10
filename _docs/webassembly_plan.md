@@ -47,7 +47,7 @@ inferred from the misleadingly named native `SIXTY_FOUR` build flag.
 
 ## Implementation status
 
-The implementation is at an M5 preview. It supports useful browser workflows,
+The implementation is at an M5/M6 preview. It supports useful browser workflows,
 but it is not yet a hardened or published release.
 
 | Milestone | State | Current result |
@@ -57,8 +57,8 @@ but it is not yet a hardened or published release.
 | M2 browser runner | Operational | Strict-TypeScript Worker runner, isolation, validation, limits, cancellation by Worker replacement, returned files, and basic diagnostics are implemented. The packaged Worker workflow passes in Chromium, Firefox, and WebKit. |
 | M3 differential suite | Partial | Twelve data-driven scenarios cover exact combining and non-Latin UTF-8, PFT subfields/modes/functions/missing/repeated fields, structured record formatting and database writes, logical deletion, PFT and search errors, WXIS flow/includes, ISO import/export, database reads/updates, file deletion, full inversion, and simple/compound search. More mutation and parser cases remain. |
 | M4 WXIS IsisScript | Partial | Hello/display, fields, loops, CGI parameters, includes, database import/export/update, file deletion, and search match native behavior in covered cases. Other host operations, temporary files, and XML remain to be classified and tested. |
-| M5 IDE APIs and persistence | Partial | CLI-backed helpers, active/deleted structured readback through one narrow C export, MFN/status-preserving writes, optimistic project revisions, snapshots, IndexedDB migration/typed failures, deterministic archives, performance reporting, and artifact budgets are implemented. Quota recovery, multi-tab behavior, and broader browser performance budgets remain. |
-| M6 hardening and release | Partial | CI runs the packaged Worker workflow in Chromium, Firefox, and WebKit, enforces Wasm artifact budgets, and publishes compatibility/performance reports. Mobile viewport coverage, sanitizer/fuzz jobs, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
+| M5 IDE APIs and persistence | Partial | CLI-backed helpers, active/deleted structured readback through one narrow C export, MFN/status-preserving writes, optimistic project revisions, snapshots, IndexedDB migration/typed failures, deterministic archives, a public-API playground, performance reporting, and artifact budgets are implemented. Quota recovery, multi-tab behavior, and broader browser performance budgets remain. |
+| M6 hardening and release | Partial | CI runs the packaged Worker and playground workflows in desktop Chromium, Firefox, and WebKit plus mobile Chromium/WebKit viewports, enforces Wasm artifact budgets, publishes compatibility/performance reports, and can deploy the playground to GitHub Pages. Sanitizer/fuzz jobs, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
 
 The current green reference is implementation commit
 [`c1490e8`](https://github.com/rwiermer/CISIS_UTF8/commit/c1490e8b12e203ee58b759ac456b02bd9e5c569f),
@@ -74,8 +74,8 @@ on 2026-08-10.
 2. Complete M5 with IndexedDB quota recovery and multi-tab behavior, then extend
    measurements to browser cold start, memory, and large databases. Keep the C
    ABI limited to record readback unless further measurements justify expansion.
-3. Continue M6 with mobile viewport coverage, sanitizer/fuzz jobs, reproducible
-   release metadata, SBOM generation, and LGPL deliverables.
+3. Continue M6 with sanitizer/fuzz jobs, reproducible release metadata, SBOM
+   generation, and LGPL deliverables.
 
 ## Architecture
 
@@ -328,9 +328,10 @@ uploaded or sample database, display diagnostics, and export all changed files.
 
 ### M6: hardening and release
 
-**Status: partial.** Chromium, Firefox, and WebKit Worker coverage, artifact
-ceilings, and compatibility/performance reports run in CI. Mobile viewport,
-security, provenance, and release work remains.
+**Status: partial.** Chromium, Firefox, and WebKit Worker coverage, mobile
+Chromium/WebKit viewport coverage, a deployable public-API playground, artifact
+ceilings, and compatibility/performance reports run in CI. Security, provenance,
+and release work remains.
 
 - Test current Chromium, Firefox, and WebKit in Playwright at desktop and mobile
   viewport sizes; execution remains in a worker on all platforms.
@@ -352,21 +353,25 @@ The current repository has:
 
 ```text
 packages/cisis-wasm/       TypeScript API, Worker, project storage, and tests
+demo/                      static PFT/FST/search/WXIS/MX playground
+scripts/build-pages.mjs    deterministic Pages artifact staging
 tests/native/              native compatibility smoke test
 tests/wasm/                generated-module and packaged-runtime smoke tests
 tests/compat/              data-driven native/Wasm differential scenarios
 tests/browser/             browser fixture page and static test server
-.github/workflows/         native, native-32, package, and Wasm/browser jobs
+.github/workflows/         build/test and GitHub Pages deployment jobs
 ```
 
 CI currently builds native 64-bit, native 32-bit, and pinned Emscripten targets;
 runs package unit tests; stages the Wasm package; compares native 32-bit and
-Wasm results; runs Chromium, Firefox, and WebKit through Playwright; enforces
-artifact budgets; and uploads Wasm modules, the package distribution, and
-differential/performance JSON reports.
+Wasm results; runs desktop Chromium, Firefox, and WebKit plus mobile
+Chromium/WebKit viewports through Playwright; exercises the interactive
+playground; enforces artifact budgets; and uploads Wasm modules, the package
+distribution, and differential/performance JSON reports. A separate workflow
+builds the pinned Wasm runtime and deploys the staged playground to GitHub Pages.
 
-Still required are sanitizer jobs, Emscripten debug artifacts, mobile viewport
-coverage, exported-symbol budget checks, and complete artifact provenance.
+Still required are sanitizer jobs, Emscripten debug artifacts, exported-symbol
+budget checks, and complete artifact provenance.
 
 ## Current compatibility summary
 
@@ -421,6 +426,7 @@ The WebAssembly work is complete enough for an in-browser test IDE when:
 The current preview satisfies the basic Worker execution, typed result,
 database/PFT/FST/search, representative WXIS, cancellation, and project
 persistence portions, including structured active/deleted record workflows and
-initial artifact/performance budgets. It does not yet satisfy the required
-language breadth, explicit host-error coverage, mobile viewport validation,
-browser memory/latency budgets, persistence hardening, or release requirements.
+initial artifact/performance budgets. The hosted playground supplies a working
+public-API IDE integration for the main workflows. The preview does not yet
+satisfy the required language breadth, explicit host-error coverage, browser
+memory/latency budgets, persistence hardening, or release requirements.

@@ -18,7 +18,7 @@
     "clean": "node -e \"const fs=require('node:fs'); for (const path of ['dist','test-dist']) fs.rmSync(path,{recursive:true,force:true})\"",
     "build": "npm run clean && tsc -p tsconfig.json",
     "test": "npm run build && tsc -p tsconfig.test.json && node --test test-dist/src/*.test.js",
-    "test:browser": "playwright test --config test/browser/playwright.config.mjs"
+    "test:browser": "node ../../scripts/build-pages.mjs && playwright test --config test/browser/playwright.config.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

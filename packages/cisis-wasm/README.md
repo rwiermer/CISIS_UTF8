@@ -5,6 +5,20 @@ Each call receives a fresh in-memory filesystem. `CisisProject` retains files in
 the JavaScript host and supplies them to each call; only files explicitly
 requested from a run are added back to the project.
 
+The repository also contains a dependency-free browser playground in `demo/`.
+It exercises structured records, PFT formatting, FST inversion and search,
+WXIS IsisScript, and low-level MX arguments through this public API. After the
+package distribution contains the generated Wasm modules, stage the exact
+GitHub Pages artifact with:
+
+```sh
+node scripts/build-pages.mjs
+```
+
+Serve the repository root and open `build/pages/index.html`; Wasm modules must
+be served as `application/wasm`. The Pages workflow performs the pinned
+Emscripten build and deploys the same staged artifact.
+
 ```ts
 import {
   CisisProject,

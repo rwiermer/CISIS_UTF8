@@ -14,7 +14,8 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 - Green reference: GitHub Actions run
   [`31415883996`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31415883996),
   2026-08-10.
-- Browsers tested in CI: headless Chromium, Firefox, and WebKit.
+- Browsers tested in CI: headless desktop Chromium, Firefox, and WebKit, plus
+  Pixel-class Chromium and iPhone-class WebKit viewports.
 
 ## Runtime and API
 
@@ -34,6 +35,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | Portable project archive | Verified in Chromium, Firefox, and WebKit | Deterministic binary archives preserve arbitrary file bytes without base64 and reject corrupt, oversized, duplicate, or escaping entries. |
 | Direct C API | Verified narrow export | One MX-only function writes a versioned record stream to MEMFS. It exposes no internal structs or allocator ownership and exists specifically because ISO export omits deleted records. |
 | Serializable record model | Verified subset | Ordered fields accept text or byte values; writes and reads preserve repeated fields, explicit MFNs, and logical deletion, and project revisions prevent silent lost updates. Reads/writes are bounded to 1,000 records per call. |
+| Interactive playground | Verified in browser matrix | The static public-API client edits demo records and executes PFT, FST/full inversion, Boolean search, WXIS IsisScript, and raw MX arguments. Output is rendered as text, and the staged artifact is deployable through GitHub Pages. |
 
 ## Language and workflow coverage
 
@@ -139,8 +141,6 @@ MST/XRF checksums, and subsequent selected PFT output remain compared.
 - Cover database sort, incremental inversion, and more deletion/reactivation
   transitions.
 - Cover IsisScript XML, temporary files, and unsupported-operation errors.
-- Add mobile viewport coverage to the Chromium, Firefox, and WebKit Playwright
-  matrix.
 - Measure browser cold start, memory, upload time, and large-database behavior.
 - Define IndexedDB quota budgets/recovery and multi-tab behavior.
 - Add sanitizer builds, fuzz smoke tests, release provenance, checksums, SBOM,

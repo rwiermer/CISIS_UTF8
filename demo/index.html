@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Run CISIS PFT, FST, MX, and WXIS directly in your browser.">
+    <title>CISIS Web Playground</title>
+    <link rel="icon" href="./cisis-mark.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <img src="./cisis-mark.svg" width="36" height="36" alt="">
+        <div>
+          <h1>CISIS Web Playground</h1>
+          <p>MX + WXIS compiled to WebAssembly</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="runtime-state" id="runtime-state" aria-live="polite">
+          <span class="state-dot"></span>
+          <span id="runtime-label">Loading runtime</span>
+        </span>
+        <a class="repo-link" href="https://github.com/rwiermer/CISIS_UTF8" target="_blank" rel="noreferrer">Source</a>
+      </div>
+    </header>
+
+    <nav class="operation-tabs" aria-label="Playground operations">
+      <button class="tab is-active" type="button" role="tab" aria-selected="true" data-tab="pft">PFT</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" data-tab="search">FST + Search</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" data-tab="wxis">WXIS</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" data-tab="records">Records</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" data-tab="mx">MX</button>
+    </nav>
+
+    <main class="workspace">
+      <aside class="catalog-pane" aria-labelledby="catalog-heading">
+        <div class="pane-heading">
+          <div>
+            <span class="eyebrow">Database</span>
+            <h2 id="catalog-heading">demo</h2>
+          </div>
+          <span class="record-count" id="record-count">0 records</span>
+        </div>
+        <div class="field-key" aria-label="Demo field map">
+          <span><b>24</b> title</span>
+          <span><b>70</b> author</span>
+          <span><b>69</b> subject</span>
+          <span><b>30</b> year</span>
+        </div>
+        <ol class="record-list" id="record-list"></ol>
+      </aside>
+
+      <section class="editor-pane" aria-label="Editor">
+        <div class="operation-panel is-active" id="panel-pft" role="tabpanel">
+          <div class="editor-heading">
+            <div>
+              <span class="eyebrow">Display format</span>
+              <h2>PFT</h2>
+            </div>
+            <span class="dialect-badge">ABCD/CISIS</span>
+          </div>
+          <label class="code-label" for="pft-source">Format</label>
+          <textarea class="code-editor code-editor-large" id="pft-source" spellcheck="false"></textarea>
+        </div>
+
+        <div class="operation-panel" id="panel-search" role="tabpanel" hidden>
+          <div class="editor-heading">
+            <div>
+              <span class="eyebrow">Inverted file</span>
+              <h2>FST + Search</h2>
+            </div>
+            <span class="dialect-badge">Full inversion</span>
+          </div>
+          <label class="code-label" for="fst-source">Field selection table</label>
+          <textarea class="code-editor" id="fst-source" spellcheck="false"></textarea>
+          <div class="input-grid">
+            <label>
+              <span>Boolean expression</span>
+              <input id="search-expression" type="text" autocomplete="off">
+            </label>
+            <label>
+              <span>Result PFT</span>
+              <input id="search-pft" class="code-input" type="text" autocomplete="off" spellcheck="false">
+            </label>
+          </div>
+        </div>
+
+        <div class="operation-panel" id="panel-wxis" role="tabpanel" hidden>
+          <div class="editor-heading">
+            <div>
+              <span class="eyebrow">IsisScript runtime</span>
+              <h2>WXIS</h2>
+            </div>
+            <span class="dialect-badge">XML source</span>
+          </div>
+          <label class="code-label" for="wxis-source">IsisScript</label>
+          <textarea class="code-editor code-editor-large" id="wxis-source" spellcheck="false"></textarea>
+          <label class="inline-field" for="wxis-params">
+            <span>Parameters (JSON)</span>
+            <input id="wxis-params" class="code-input" type="text" spellcheck="false">
+          </label>
+        </div>
+
+        <div class="operation-panel" id="panel-records" role="tabpanel" hidden>
+          <div class="editor-heading">
+            <div>
+              <span class="eyebrow">Structured database API</span>
+              <h2>Records</h2>
+            </div>
+            <span class="dialect-badge">JSON</span>
+          </div>
+          <label class="code-label" for="records-source">Complete record set</label>
+          <textarea class="code-editor code-editor-large" id="records-source" spellcheck="false"></textarea>
+        </div>
+
+        <div class="operation-panel" id="panel-mx" role="tabpanel" hidden>
+          <div class="editor-heading">
+            <div>
+              <span class="eyebrow">Low-level utility</span>
+              <h2>MX arguments</h2>
+            </div>
+            <span class="dialect-badge">One per line</span>
+          </div>
+          <label class="code-label" for="mx-source">Arguments</label>
+          <textarea class="code-editor code-editor-large" id="mx-source" spellcheck="false"></textarea>
+        </div>
+
+        <div class="run-bar">
+          <button class="primary-button" id="run-button" type="button">
+            <span aria-hidden="true">▶</span>
+            <span id="run-label">Run PFT</span>
+          </button>
+          <button class="secondary-button" id="reset-button" type="button" title="Reset demo">
+            <span aria-hidden="true">↻</span>
+            Reset
+          </button>
+          <span class="shortcut">Ctrl/⌘ + Enter</span>
+        </div>
+      </section>
+
+      <section class="output-pane" aria-labelledby="output-heading">
+        <div class="pane-heading output-heading">
+          <div>
+            <span class="eyebrow">Execution result</span>
+            <h2 id="output-heading">Output</h2>
+          </div>
+          <div class="output-actions">
+            <span class="duration" id="duration"></span>
+            <button class="icon-button" id="copy-button" type="button" title="Copy output" aria-label="Copy output">⧉</button>
+          </div>
+        </div>
+        <div class="output-status" id="output-status" data-state="idle">Ready</div>
+        <pre class="console" id="console" tabindex="0">Choose an operation and run it against the demo catalog.</pre>
+        <section class="diagnostics" id="diagnostics" hidden>
+          <h3>Diagnostics</h3>
+          <ul id="diagnostic-list"></ul>
+        </section>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <span>Runs locally in a Web Worker. No records leave this browser.</span>
+      <span>Preview runtime · ISIS1660 UTF-8</span>
+    </footer>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

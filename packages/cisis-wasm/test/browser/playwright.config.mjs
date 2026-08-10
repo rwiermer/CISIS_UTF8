@@ -1,5 +1,6 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { devices } from "@playwright/test";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 
@@ -14,6 +15,14 @@ export default {
     { name: "chromium", use: { browserName: "chromium" } },
     { name: "firefox", use: { browserName: "firefox" } },
     { name: "webkit", use: { browserName: "webkit" } },
+    {
+      name: "mobile-chromium",
+      use: { ...devices["Pixel 7"], browserName: "chromium" },
+    },
+    {
+      name: "mobile-webkit",
+      use: { ...devices["iPhone 15"], browserName: "webkit" },
+    },
   ],
   webServer: {
     command: "node tests/browser/server.mjs",

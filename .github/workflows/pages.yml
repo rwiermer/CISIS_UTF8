@@ -1,0 +1,56 @@
+name: Deploy playground
+
+on:
+  push:
+    branches:
+      - master
+      - feat/webassembly-bootstrap
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 6.0.4
+          actions-cache-folder: emsdk-cache
+      - name: Build WebAssembly modules
+        run: |
+          cmake --preset wasm
+          cmake --build --preset wasm --parallel 2
+      - name: Build playground
+        run: |
+          npm ci --prefix packages/cisis-wasm
+          npm run build --prefix packages/cisis-wasm
+          cp build/wasm/cisis-mx.mjs build/wasm/cisis-mx.wasm packages/cisis-wasm/dist/
+          cp build/wasm/cisis-wxis.mjs build/wasm/cisis-wxis.wasm packages/cisis-wasm/dist/
+          node scripts/build-pages.mjs
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: build/pages
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
