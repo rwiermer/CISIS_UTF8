@@ -20,18 +20,19 @@
         });
         const source = await fetch("/wxis_src/examples/hello.xis").then((response) => response.text());
         const wxis = await runner.runIsisScript({ source });
-        const [mst, xrf] = await Promise.all(
-          ["mst", "xrf"].map((extension) =>
-            fetch(`/wxis_src/examples/cdsx/cds.${extension}`).then(async (response) => {
-              if (!response.ok) throw new Error(`Failed to load CDSX ${extension}`);
-              return new Uint8Array(await response.arrayBuffer());
-            }),
-          ),
-        );
+        const isoResponse = await fetch("/wxis_src/examples/cds/cds.iso");
+        if (!isoResponse.ok) throw new Error("Failed to load CDS ISO fixture");
+        const imported = await runner.run({
+          program: "mx",
+          args: ["iso=cds.iso", "create=cds", "now"],
+          files: { "cds.iso": new Uint8Array(await isoResponse.arrayBuffer()) },
+          returnFiles: ["cds.mst", "cds.xrf"],
+        });
+        if (imported.exitCode !== 0) throw new Error(imported.stderr || "CDS import failed");
         const formatted = await runner.format({
           database: "cds",
           pft: "mfn(4),'|',v24/",
-          files: { "cds.mst": mst, "cds.xrf": xrf },
+          files: imported.files,
           count: 2,
         });
         window.__cisisTestResult = {
