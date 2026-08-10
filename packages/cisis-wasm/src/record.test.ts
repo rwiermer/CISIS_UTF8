@@ -5,7 +5,7 @@ import { encodeIso2709Record } from "./record.js";
 
 test("encodes ordered and repeated CISIS fields as ISO2709", () => {
   const encoded = encodeIso2709Record({
-    mfn: 42,
+    mfn: 1,
     status: "active",
     fields: [
       { tag: 24, value: "A title" },
@@ -35,7 +35,11 @@ test("rejects records that ISO2709 cannot represent safely", () => {
     /reserved byte/,
   );
   assert.throws(
-    () => encodeIso2709Record({ status: "deleted", fields: [] }),
-    /Deleted CISIS records/,
+    () => encodeIso2709Record({ mfn: 2, fields: [] } as never),
+    /assigns MFN 1/,
+  );
+  assert.throws(
+    () => encodeIso2709Record({ status: "deleted", fields: [] } as never),
+    /creates an active record/,
   );
 });

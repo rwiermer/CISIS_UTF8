@@ -38,7 +38,7 @@ inferred from the misleadingly named native `SIXTY_FOUR` build flag.
   small stable API. PFT support should initially reuse the proven engine through
   MX, then gain a narrow C wrapper after parity tests exist.
 - The repository contains roughly one hundred IsisScript examples, a CDS
-  ISO/PFT/FST dataset, compiled databases, and UTF-8 fixtures. Seven workflows
+  ISO/PFT/FST dataset, compiled databases, and UTF-8 fixtures. Eleven workflows
   are now differential scenarios; most examples have not yet been promoted to
   asserted tests.
 - Browser-incompatible or security-sensitive features are reachable from the
@@ -55,15 +55,15 @@ but it is not yet a hardened or published release.
 | M0 native baseline | Operational | Separate MX and WXIS CMake targets build on native 64-bit and native 32-bit Linux; the 32-bit build is the Wasm parity oracle. |
 | M1 Emscripten executable | Operational | Pinned Emscripten 6.0.4 produces separate modularized ES modules for MX and WXIS with MEMFS. |
 | M2 browser runner | Partial | Strict-TypeScript Worker runner, isolation, validation, limits, cancellation by Worker replacement, returned files, and basic diagnostics are implemented. Chromium is green; Firefox is not yet in CI. |
-| M3 differential suite | Partial | Ten data-driven scenarios cover exact combining and non-Latin UTF-8, PFT subfields/modes/functions/missing/repeated fields, PFT and search errors, WXIS flow/includes, ISO import/export, database reads/updates, file deletion, full inversion, and simple/compound search. More mutation and parser cases remain. |
+| M3 differential suite | Partial | Eleven data-driven scenarios cover exact combining and non-Latin UTF-8, PFT subfields/modes/functions/missing/repeated fields, structured records, PFT and search errors, WXIS flow/includes, ISO import/export, database reads/updates, file deletion, full inversion, and simple/compound search. More mutation and parser cases remain. |
 | M4 WXIS IsisScript | Partial | Hello/display, fields, loops, CGI parameters, includes, database import/export/update, file deletion, and search match native behavior in covered cases. Other host operations, temporary files, and XML remain to be classified and tested. |
-| M5 IDE APIs and persistence | Partial | CLI-backed helpers, `CisisProject`, file synchronization, versioned snapshots, optional IndexedDB, and deterministic binary project archives are implemented. A direct C ABI, record model, migrations, quotas, and performance budgets remain. |
+| M5 IDE APIs and persistence | Partial | CLI-backed helpers, active single-record formatting, `CisisProject`, file synchronization, versioned snapshots, optional IndexedDB, and deterministic binary project archives are implemented. MFN/status-preserving database editing, migrations, quotas, and performance budgets remain; a direct C ABI is optional pending measurements. |
 | M6 hardening and release | Not started | Cross-browser coverage, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
 
 The current green reference is implementation commit
-[`da2c8ea`](https://github.com/rwiermer/CISIS_UTF8/commit/da2c8eaabb569b894996e5063264dc785bd5722c),
+[`0e774e6`](https://github.com/rwiermer/CISIS_UTF8/commit/0e774e62aec5af152da3307a23d72cb68eb19bc8),
 validated by GitHub Actions run
-[`31409338871`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31409338871)
+[`31410507361`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31410507361)
 on 2026-08-10.
 
 ### Next priorities
@@ -71,10 +71,10 @@ on 2026-08-10.
 1. Close the remaining M3/M4 correctness gaps with additional PFT/search parser
    failures, database record deletion and sort, incremental inversion, WXIS
    temporary files/XML, and explicit unsupported-host-operation tests.
-2. Complete M5 with IndexedDB migration and quota behavior, a serializable
-   record model, and measured browser performance budgets. Add a direct C ABI
-   only where measurements or diagnostics show a clear benefit over the
-   parity-tested CLI boundary.
+2. Complete M5 with IndexedDB migration and quota behavior, MFN/status-preserving
+   multi-record database editing, and measured browser performance budgets. Add
+   a direct C ABI only where measurements or diagnostics show a clear benefit
+   over the parity-tested CLI boundary.
 3. Start M6 with Firefox and WebKit CI, sanitizer/fuzz jobs, artifact budgets,
    reproducible release metadata, SBOM generation, and LGPL deliverables.
 
@@ -154,6 +154,7 @@ The package also exposes CLI-backed IDE helpers:
 
 ```ts
 format({ database, pft, files, from, count }): Promise<CisisRunResult>
+formatRecord({ record, pft }): Promise<CisisRunResult>
 runIsisScript({ source, params, files }): Promise<CisisRunResult>
 search({ database, expression, pft, files, from, count }): Promise<CisisRunResult>
 index({ database, fst, files, index }): Promise<CisisRunResult>
@@ -250,7 +251,7 @@ and timeout recovery leaves the next run usable.
 ### M3: differential compatibility suite
 
 **Status: partial.** The runner and published compatibility matrix exist. The
-current ten scenarios cover the main database/index/search path, but not the
+current eleven scenarios cover the main database/index/search path, but not the
 full example groups listed below.
 
 - Build a native fixture runner that emits a JSON manifest containing command,
@@ -298,15 +299,18 @@ native WXIS; unsupported host operations fail explicitly and safely.
 
 ### M5: direct IDE APIs and persistence
 
-**Status: partial.** Database-oriented TypeScript helpers, host-managed project
-files, versioned snapshots, IndexedDB persistence, and deterministic binary
-project archives are implemented. The direct C ABI, serializable record model,
-migrations, quota handling, and measurements remain.
+**Status: partial.** Database-oriented TypeScript helpers, active single-record
+formatting, host-managed project files, versioned snapshots, IndexedDB
+persistence, and deterministic binary project archives are implemented.
+MFN/status-preserving multi-record database editing, migrations, quota handling,
+and measurements remain. A direct C ABI remains optional pending evidence that
+it improves performance or diagnostics.
 
-- Add the narrow C ABI needed by `format`, `search`, and `index`; avoid exposing
-  internal C structs or allocator ownership to JavaScript.
-- Define a serializable record model that preserves repeated fields, subfields,
-  byte content, and MFN/status metadata.
+- Measure the CLI-backed `format`, `search`, and `index` helpers, then add a
+  narrow C ABI only where the results justify it; do not expose internal C
+  structs or allocator ownership to JavaScript.
+- Extend the serializable active-record model into database editing that
+  preserves repeated fields, subfields, byte content, and MFN/status metadata.
 - Add optional project snapshots and IndexedDB persistence in the TypeScript
   layer, with import/export of all database companion files.
 - Measure cold start, repeat-run latency, peak memory, fixture upload time, and
@@ -365,7 +369,7 @@ The detailed evidence and exclusions are maintained in
 | PFT formatting | Parity for covered combining/non-Latin UTF-8, subfields, modes, functions, missing/repeated fields, and one syntax error | More functions/errors and undocumented extensions remain test-driven |
 | IsisScript | Flow, includes, DB import/read/search/update | XML, temporary-file, error, shell, and socket cases remain |
 | FST/indexing | Full inversion and search for bundled CDS FST | Other techniques, incremental inversion, and large databases |
-| Database formats | ISIS1660 MST/XRF and companion index files | Other layout variants after fixture coverage |
+| Database formats | ISIS1660 MST/XRF and companion index files; active structured record formatting | MFN/status-preserving editing and other layout variants after fixture coverage |
 | Persistence | Host-managed files, versioned snapshots, optional IndexedDB, deterministic import/export archive | Migrations, quotas, and multi-tab coordination |
 | Concurrency | One serialized runtime per worker | Worker pool only after memory measurement |
 | Networking | JavaScript host fetches files before execution | Native socket compatibility excluded |

@@ -8,8 +8,8 @@ export interface CisisRecordField {
 }
 
 export interface CisisRecord {
-  mfn?: number;
-  status?: "active" | "deleted";
+  mfn?: 1;
+  status?: "active";
   fields: readonly CisisRecordField[];
 }
 

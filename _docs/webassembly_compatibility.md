@@ -8,11 +8,11 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 
 - Package version: `0.1.0-dev` (private preview).
 - Validated implementation: commit
-  [`da2c8ea`](https://github.com/rwiermer/CISIS_UTF8/commit/da2c8eaabb569b894996e5063264dc785bd5722c).
+  [`0e774e6`](https://github.com/rwiermer/CISIS_UTF8/commit/0e774e62aec5af152da3307a23d72cb68eb19bc8).
 - Toolchain: Emscripten 6.0.4, wasm32, 32-bit `LONGX`.
 - Native parity oracle: the same commit built as 32-bit Linux ISIS1660.
 - Green reference: GitHub Actions run
-  [`31409338871`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31409338871),
+  [`31410507361`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31410507361),
   2026-08-10.
 - Browser currently tested in CI: headless Chromium.
 
@@ -22,6 +22,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | --- | --- | --- |
 | Low-level execution | Verified | `run()` invokes MX or WXIS in a module Worker and returns status, stdout, stderr, diagnostics, duration, requested files, and inspected file-presence states. |
 | PFT formatting helper | Verified | `format()` runs a PFT against caller-supplied ISIS1660 database files. |
+| Structured record formatting | Verified in Chromium/native-Wasm parity | `formatRecord()` preserves ordered and repeated fields, UTF-8 values, and PFT subfield syntax while importing one active record as MFN 1. |
 | FST indexing helper | Verified | `index()` performs full inversion and returns `.cnt`, `.ifp`, `.l01`, `.l02`, `.n01`, and `.n02`. |
 | Search helper | Verified | `search()` executes an MX Boolean expression against supplied database and index files. |
 | IsisScript helper | Verified subset | `runIsisScript()` maps source, parameters, and files to request-local WXIS arguments. |
@@ -30,7 +31,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | IndexedDB persistence | Verified in Chromium | `CisisProjectStore` supports save, load, list, delete, and close. |
 | Portable project archive | Verified in Chromium | Deterministic binary archives preserve arbitrary file bytes without base64 and reject corrupt, oversized, duplicate, or escaping entries. |
 | Direct C API | Not implemented | IDE helpers currently translate to validated MX/WXIS command arguments. |
-| Serializable record model | Not implemented | Callers currently provide database files rather than structured records. |
+| Serializable record model | Partial | Ordered fields accept text or byte values. Arbitrary MFNs, deleted status, multiple records, and database mutation are not yet represented. |
 
 ## Language and workflow coverage
 
@@ -46,7 +47,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 
 ## Differential scenarios
 
-Ten scenarios currently execute against both native 32-bit and Wasm builds:
+Eleven scenarios currently execute against both native 32-bit and Wasm builds:
 
 1. UTF-8 sequence input and PFT output.
 2. Polish, Japanese, and Greek PFT output.
@@ -54,12 +55,14 @@ Ten scenarios currently execute against both native 32-bit and Wasm builds:
 4. WXIS field definition and loop control.
 5. WXIS nested includes and calls.
 6. Fatal PFT syntax error with structured format diagnostics.
-7. WXIS file deletion and inspected post-run file state.
-8. ISO import/export, database reads, and PFT missing/repeated fields,
+7. Structured active-record import and PFT formatting, including repeated fields,
+   UTF-8, and subfields.
+8. WXIS file deletion and inspected post-run file state.
+9. ISO import/export, database reads, and PFT missing/repeated fields,
    subfields, uppercase mode, and functions.
-9. ISO import, FST full inversion, simple/compound MX search, WXIS search, and
+10. ISO import, FST full inversion, simple/compound MX search, WXIS search, and
    malformed search.
-10. WXIS ISO import/update followed by an MX database read.
+11. WXIS ISO import/update followed by an MX database read.
 
 The differential runner compares exit status, stdout, stderr, and requested
 output-file SHA-256 checksums. It normalizes CRLF to LF and removes one terminal
@@ -111,5 +114,6 @@ MST/XRF checksums, and subsequent selected PFT output remain compared.
 - Add Firefox and WebKit Playwright jobs.
 - Measure cold start, repeated-run latency, memory, upload time, and artifact size.
 - Define IndexedDB migration, quota, corruption, and multi-tab behavior.
+- Extend structured records to MFN/status-preserving multi-record database edits.
 - Add sanitizer builds, fuzz smoke tests, release provenance, checksums, SBOM,
   and LGPL source/relinking deliverables.

@@ -30,8 +30,11 @@ function fieldBytes(field: CisisRecordField): Uint8Array {
 }
 
 export function encodeIso2709Record(record: CisisRecord): Uint8Array {
-  if (record.status === "deleted") {
-    throw new Error("Deleted CISIS records cannot be imported through ISO2709");
+  if (record.mfn !== undefined && record.mfn !== 1) {
+    throw new Error("Single-record ISO import assigns MFN 1");
+  }
+  if (record.status !== undefined && record.status !== "active") {
+    throw new Error("Single-record ISO import creates an active record");
   }
   const fields = record.fields.map((field) => ({ field, data: fieldBytes(field) }));
   const baseAddress = HEADER_BYTES + fields.length * DIRECTORY_ENTRY_BYTES + 1;

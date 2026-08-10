@@ -62,6 +62,11 @@ store.close();
 runner.dispose();
 ```
 
+Structured records preserve field order, repeated tags, UTF-8 values, and PFT
+subfield syntax. `formatRecord()` imports exactly one active record as MFN 1;
+preserving arbitrary MFNs or deleted records requires the future database
+editing API.
+
 The low-level `run()` method remains available for MX or WXIS arguments not yet
 represented by a helper. Pass `returnFiles` when a low-level operation creates
 or changes files that the project must retain. Pass `inspectFiles` for paths
