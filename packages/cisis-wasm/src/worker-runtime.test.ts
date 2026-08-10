@@ -76,3 +76,29 @@ test("limits captured runtime output", async () => {
   assert.equal(result.exitCode, 1);
   assert.match(result.stderr, /output exceeded 4 bytes/);
 });
+
+test("reports a missing requested output without leaking filesystem errors", async () => {
+  const loadModule: ModuleLoader = async () => ({
+    default: async () => ({
+      FS: {
+        analyzePath: () => ({ exists: false }),
+        chdir: () => undefined,
+        mkdir: () => undefined,
+        mkdirTree: () => undefined,
+        readFile: () => { throw { errno: 44 }; },
+        writeFile: () => undefined,
+      },
+      callMain: () => 0,
+    }),
+  });
+
+  await assert.rejects(
+    executeRequest(
+      9,
+      "mock-module.mjs",
+      { program: "mx", args: [], returnFiles: ["missing.bin"] },
+      loadModule,
+    ),
+    /did not create requested file: missing.bin/,
+  );
+});

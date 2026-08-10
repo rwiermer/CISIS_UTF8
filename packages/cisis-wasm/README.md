@@ -50,6 +50,12 @@ await project.writeRecords({
   ],
 });
 
+const activeRecords = await project.readRecords({
+  database: "cds",
+  from: 1,
+  count: 100,
+});
+
 await project.index({
   database: "cds",
   fst: "70 0 MHU,(V70/)\n24 4 MHU,V24\n",
@@ -83,7 +89,10 @@ it does not preserve caller-supplied MFNs or deleted status. `writeRecords()`
 provides that database boundary for batches of up to 1,000 records and MFNs up
 to 1,000,000. Writes preserve explicit MFNs and logical deletion status, replace
 complete records, and invalidate retained inverted-file companions so the IDE
-cannot search a stale index.
+cannot search a stale index. `readRecords()` returns active records with exact
+byte-valued fields and preserves their order and repetitions. CISIS ISO export
+does not expose logically deleted record contents, so deleted-record readback is
+not yet part of the structured API.
 
 The low-level `run()` method remains available for MX or WXIS arguments not yet
 represented by a helper. Pass `returnFiles` when a low-level operation creates

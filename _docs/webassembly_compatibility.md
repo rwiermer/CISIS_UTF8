@@ -24,6 +24,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | PFT formatting helper | Verified | `format()` runs a PFT against caller-supplied ISIS1660 database files. |
 | Structured record formatting | Verified in Chromium/native-Wasm parity | `formatRecord()` preserves ordered and repeated fields, UTF-8 values, and PFT subfield syntax while importing one active record as MFN 1. |
 | Structured database writes | Verified in Chromium; Wasm differential case added | `writeRecords()` creates or upserts up to 1,000 complete records with explicit MFNs and active/deleted status, then invalidates stale index companions. MFNs are limited to 1,000,000 and one field tag must be unused by the batch for transient import metadata. |
+| Structured database reads | Verified in Chromium; ISO export covered by differential case | `readRecords()` returns active records with explicit MFNs, ordered/repeated tags, and byte-valued fields. Its transient MFN marker is removed without discarding an original tag 999. Deleted record contents are not exposed by the current MX ISO export path. |
 | FST indexing helper | Verified | `index()` performs full inversion and returns `.cnt`, `.ifp`, `.l01`, `.l02`, `.n01`, and `.n02`. |
 | Search helper | Verified | `search()` executes an MX Boolean expression against supplied database and index files. |
 | IsisScript helper | Verified subset | `runIsisScript()` maps source, parameters, and files to request-local WXIS arguments. |
@@ -32,7 +33,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | IndexedDB persistence | Verified in Chromium | `CisisProjectStore` supports save, load, list, delete, and close; v1 databases migrate to v2 with binary data intact, and blocked/corrupt/quota failures have typed codes. |
 | Portable project archive | Verified in Chromium | Deterministic binary archives preserve arbitrary file bytes without base64 and reject corrupt, oversized, duplicate, or escaping entries. |
 | Direct C API | Not implemented | IDE helpers currently translate to validated MX/WXIS command arguments. |
-| Serializable record model | Partial | Ordered fields accept text or byte values; database writes preserve repeated fields, explicit MFNs, and logical deletion. Structured readback and write-conflict semantics are not yet represented. |
+| Serializable record model | Partial | Ordered fields accept text or byte values; writes preserve repeated fields, explicit MFNs, and logical deletion, and active records can be read back. Deleted-record readback and write-conflict semantics are not yet represented. |
 
 ## Language and workflow coverage
 
@@ -41,7 +42,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | PFT | Supported subset | literals, MFN, field/subfield selection, missing/repeated fields, uppercase mode, `nocc`, `size`, `left`, combining/non-Latin UTF-8, and one fatal syntax error | other modes, broader functions/includes, and more errors need focused cases |
 | IsisScript flow | Supported subset | display, fields, loops, CGI parameters, and nested includes | broader flow/error examples and precise source diagnostics |
 | IsisScript database work | Supported subset | ISO import/export, update writes, database reads, file deletion, Boolean search, and malformed-search reporting | record deletion, sort, XML conversion, and temporary-file workflows |
-| Database format | Supported subset | ISO2709 import/export, current ISIS1660 MST/XRF creation/reads, sparse MFNs, complete-record upserts, and logical deletion | structured readback, other historical layouts, large databases, and endian portability |
+| Database format | Supported subset | ISO2709 import/export, current ISIS1660 MST/XRF creation/reads, active structured readback, sparse MFNs, complete-record upserts, and logical deletion | deleted-record readback, other historical layouts, large databases, and endian portability |
 | FST and inversion | Supported subset | bundled CDS techniques 0, 2, and 4; full inversion through the in-process CISIS sorter | other techniques, stopword/table variants, and incremental inversion |
 | Search | Supported subset | MX and WXIS Boolean retrieval, a compound `AND`, and one WXIS malformed-expression path | broader syntax-error matrix, prefixes, sets, logs, and larger result sets |
 | UTF-8 | Supported subset | combining characters plus asserted Polish, Japanese, and Greek output | table-driven case conversion and deliberately invalid byte sequences |
@@ -116,6 +117,6 @@ MST/XRF checksums, and subsequent selected PFT output remain compared.
 - Add Firefox and WebKit Playwright jobs.
 - Measure cold start, repeated-run latency, memory, upload time, and artifact size.
 - Define IndexedDB quota budgets/recovery and multi-tab behavior.
-- Add structured record readback and write-conflict semantics.
+- Add deleted-record readback and write-conflict semantics.
 - Add sanitizer builds, fuzz smoke tests, release provenance, checksums, SBOM,
   and LGPL source/relinking deliverables.

@@ -224,6 +224,18 @@ export const scenarios = [
           stderr: "",
         },
       },
+      {
+        program: "mx",
+        args: [
+          "records",
+          "proc='a999|^m'mfn'^cCISISWASMREAD|'",
+          "outiso=marc=readback.iso",
+          "pft=if 1=0 then mfn fi",
+          "now",
+        ],
+        outputs: ["readback.iso"],
+        expected: { exitCode: 0, stdout: "", stderr: "" },
+      },
     ],
   },
   {

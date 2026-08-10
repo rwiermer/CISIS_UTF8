@@ -4,6 +4,8 @@ const HEADER_BYTES = 24;
 const DIRECTORY_ENTRY_BYTES = 12;
 const FIELD_SEPARATOR = 0x23;
 const MAX_RECORD_BYTES = 99_999;
+const ISO_FIELD_SEPARATOR = 0x1e;
+const ISO_RECORD_SEPARATOR = 0x1d;
 
 function decimal(value: number, width: number, name: string): string {
   if (!Number.isSafeInteger(value) || value < 0 || value >= 10 ** width) {
@@ -68,4 +70,75 @@ export function encodeIso2709Record(record: CisisRecordData): Uint8Array {
   }
   output[dataOffset] = FIELD_SEPARATOR;
   return output;
+}
+
+function decimalBytes(data: Uint8Array, start: number, width: number, name: string): number {
+  let value = 0;
+  for (let index = start; index < start + width; index += 1) {
+    const byte = data[index];
+    if (byte === undefined || byte < 0x30 || byte > 0x39) {
+      throw new Error(`Invalid ISO2709 ${name}`);
+    }
+    value = value * 10 + byte - 0x30;
+  }
+  return value;
+}
+
+export function decodeIso2709Records(input: ArrayBuffer | Uint8Array): CisisRecordData[] {
+  const data = input instanceof Uint8Array ? input : new Uint8Array(input);
+  const records: CisisRecordData[] = [];
+  let recordOffset = 0;
+
+  while (recordOffset < data.byteLength) {
+    if (data.byteLength - recordOffset < HEADER_BYTES + 1) {
+      throw new Error("Truncated ISO2709 record header");
+    }
+    const recordLength = decimalBytes(data, recordOffset, 5, "record length");
+    const baseAddress = decimalBytes(data, recordOffset + 12, 5, "base address");
+    const recordEnd = recordOffset + recordLength;
+    if (
+      recordLength < HEADER_BYTES + 1 ||
+      recordEnd > data.byteLength ||
+      baseAddress < HEADER_BYTES + 1 ||
+      baseAddress >= recordLength
+    ) {
+      throw new Error("Invalid ISO2709 record bounds");
+    }
+    if (data[recordEnd - 1] !== ISO_RECORD_SEPARATOR) {
+      throw new Error("ISO2709 record terminator is missing");
+    }
+
+    const directoryBytes = baseAddress - HEADER_BYTES - 1;
+    if (directoryBytes % DIRECTORY_ENTRY_BYTES !== 0) {
+      throw new Error("Invalid ISO2709 directory length");
+    }
+    const directoryEnd = recordOffset + HEADER_BYTES + directoryBytes;
+    if (data[directoryEnd] !== ISO_FIELD_SEPARATOR) {
+      throw new Error("ISO2709 directory terminator is missing");
+    }
+
+    const fields: CisisRecordField[] = [];
+    for (
+      let directoryOffset = recordOffset + HEADER_BYTES;
+      directoryOffset < directoryEnd;
+      directoryOffset += DIRECTORY_ENTRY_BYTES
+    ) {
+      const tag = decimalBytes(data, directoryOffset, 3, "field tag");
+      const fieldLength = decimalBytes(data, directoryOffset + 3, 4, "field length");
+      const fieldOffset = decimalBytes(data, directoryOffset + 7, 5, "field offset");
+      const fieldStart = recordOffset + baseAddress + fieldOffset;
+      const fieldEnd = fieldStart + fieldLength;
+      if (fieldLength < 1 || fieldStart < recordOffset + baseAddress || fieldEnd >= recordEnd) {
+        throw new Error(`Invalid ISO2709 field bounds for tag ${tag}`);
+      }
+      if (data[fieldEnd - 1] !== ISO_FIELD_SEPARATOR) {
+        throw new Error(`ISO2709 field terminator is missing for tag ${tag}`);
+      }
+      fields.push({ tag, value: data.slice(fieldStart, fieldEnd - 1) });
+    }
+    records.push({ fields });
+    recordOffset = recordEnd;
+  }
+
+  return records;
 }

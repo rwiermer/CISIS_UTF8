@@ -126,7 +126,16 @@
           database: "catalog",
           replace: true,
           records: [
-            { mfn: 5, status: "active", fields: [{ tag: 24, value: "日本語 Five" }] },
+            {
+              mfn: 5,
+              status: "active",
+              fields: [
+                { tag: 24, value: "日本語 Five" },
+                { tag: 70, value: "Ada" },
+                { tag: 70, value: "Grace" },
+                { tag: 999, value: "original" },
+              ],
+            },
             { mfn: 9, status: "deleted", fields: [{ tag: 24, value: "Nine" }] },
           ],
         });
@@ -145,6 +154,7 @@
           database: "catalog",
           pft: "mfn(6),'|',v24/",
         });
+        const readback = await editableProject.readRecords({ database: "catalog" });
 
         const formatted = await restored.format({
           database: "cds",
@@ -177,6 +187,16 @@
             afterCreate: afterCreate.stdout,
             afterUpdate: afterUpdate.stdout,
             files: editableProject.listFiles(),
+            readback: readback.records.map((record) => ({
+              mfn: record.mfn,
+              status: record.status,
+              fields: record.fields.map((field) => [
+                field.tag,
+                typeof field.value === "string"
+                  ? field.value
+                  : new TextDecoder().decode(field.value),
+              ]),
+            })),
           },
           deleted: {
             exitCode: deleted.exitCode,
@@ -186,7 +206,9 @@
         };
         status.value = "Passed";
       } catch (error) {
-        window.__cisisTestError = error instanceof Error ? error.message : String(error);
+        window.__cisisTestError = error instanceof Error
+          ? `${error.name}: ${error.message}`
+          : JSON.stringify(error, Object.getOwnPropertyNames(error));
         status.value = "Failed";
       } finally {
         runner.dispose();

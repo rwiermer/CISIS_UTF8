@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { encodeIso2709Record } from "./record.js";
+import { decodeIso2709Records, encodeIso2709Record } from "./record.js";
+
+const exportedIso = new TextEncoder().encode(
+  "00135nz   2200085n  4500" +
+  "024000600000070000400006070000600010999000900016999002400025\x1e" +
+  "Title\x1eAda\x1eGrace\x1eoriginal\x1e^m000005^cCISISWASMREAD\x1e\x1d",
+);
 
 test("encodes ordered and repeated CISIS fields as ISO2709", () => {
   const encoded = encodeIso2709Record({
@@ -32,4 +38,26 @@ test("rejects records that ISO2709 cannot represent safely", () => {
     () => encodeIso2709Record({ fields: [{ tag: 1, value: "reserved#value" }] }),
     /reserved byte/,
   );
+});
+
+test("decodes ordered repeated and binary ISO2709 fields", () => {
+  const decoded = decodeIso2709Records(exportedIso);
+  assert.equal(decoded.length, 1);
+  assert.deepEqual(
+    decoded[0]!.fields.map((field) => [field.tag, new TextDecoder().decode(field.value as Uint8Array)]),
+    [
+      [24, "Title"],
+      [70, "Ada"],
+      [70, "Grace"],
+      [999, "original"],
+      [999, "^m000005^cCISISWASMREAD"],
+    ],
+  );
+});
+
+test("rejects corrupt ISO2709 exports", () => {
+  const corrupt = exportedIso.slice();
+  corrupt[corrupt.length - 1] = 0;
+  assert.throws(() => decodeIso2709Records(corrupt), /record terminator/);
+  assert.throws(() => decodeIso2709Records(exportedIso.slice(0, 20)), /Truncated/);
 });

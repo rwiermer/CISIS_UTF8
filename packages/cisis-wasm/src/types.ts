@@ -99,6 +99,18 @@ export interface WriteRecordsRequest {
   timeoutMs?: number;
 }
 
+export interface ReadRecordsRequest {
+  database: string;
+  files?: Record<string, CisisInputFile>;
+  from?: number;
+  count?: number;
+  timeoutMs?: number;
+}
+
+export type CisisReadRecordsResult = Omit<CisisRunResult, "files" | "fileStates"> & {
+  records: CisisRecord[];
+};
+
 export interface IndexRequest {
   database: string;
   fst: string;

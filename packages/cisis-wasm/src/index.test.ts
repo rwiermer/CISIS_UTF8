@@ -36,6 +36,12 @@ function success(stdout: string): CisisRunResult {
   };
 }
 
+const exportedRecord = new TextEncoder().encode(
+  "00135nz   2200085n  4500" +
+  "024000600000070000400006070000600010999000900016999002400025\x1e" +
+  "Title\x1eAda\x1eGrace\x1eoriginal\x1e^m000005^cCISISWASMREAD\x1e\x1d",
+);
+
 test("serializes requests through one worker", async () => {
   const worker = new MockWorker();
   const runner = new CisisRunner({
@@ -319,6 +325,40 @@ test("does not expose a partially finalized structured write", async () => {
   assert.equal(failed.exitCode, 1);
   assert.deepEqual(failed.files, {});
   assert.deepEqual(failed.fileStates, {});
+  runner.dispose();
+});
+
+test("reads active structured records and removes only export metadata", async () => {
+  const worker = new MockWorker();
+  const runner = new CisisRunner({ workerFactory: () => worker as unknown as Worker });
+  const pending = runner.readRecords({ database: "catalog", from: 5, count: 2 });
+
+  assert.deepEqual(worker.messages[0]?.request.args, [
+    "catalog",
+    "proc='a999|^m'mfn'^cCISISWASMREAD|'",
+    "outiso=marc=__cisis-read-records.iso",
+    "from=5",
+    "count=2",
+    "pft=if 1=0 then mfn fi",
+    "now",
+  ]);
+  worker.respond({
+    type: "result",
+    id: worker.messages[0]!.id,
+    result: {
+      ...success(""),
+      files: { "__cisis-read-records.iso": exportedRecord },
+    },
+  });
+
+  const result = await pending;
+  assert.equal(result.records[0]?.mfn, 5);
+  assert.equal(result.records[0]?.status, "active");
+  assert.deepEqual(result.records[0]?.fields.map((field) => field.tag), [24, 70, 70, 999]);
+  assert.equal(
+    new TextDecoder().decode(result.records[0]?.fields[3]?.value as Uint8Array),
+    "original",
+  );
   runner.dispose();
 });
 

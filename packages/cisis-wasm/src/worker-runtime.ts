@@ -109,7 +109,12 @@ export async function executeRequest(
   let returnedFileBytes = 0;
   for (const path of request.returnFiles ?? []) {
     const normalized = normalizeVirtualPath(path);
-    const data = module.FS.readFile(`${requestRoot}/${normalized}`);
+    const absolute = `${requestRoot}/${normalized}`;
+    if (!module.FS.analyzePath(absolute).exists) {
+      if (exitCode !== 0) continue;
+      throw new Error(`CISIS did not create requested file: ${normalized}`);
+    }
+    const data = module.FS.readFile(absolute);
     returnedFileBytes += data.byteLength;
     if (returnedFileBytes > maxReturnedFileBytes) {
       throw new Error(`CISIS returned files exceeded ${maxReturnedFileBytes} bytes`);

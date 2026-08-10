@@ -37,6 +37,23 @@ test("runs MX/PFT and WXIS in the packaged browser worker", async ({ page }) => 
     afterCreate: "000005|日本語 Five",
     afterUpdate: "000005|日本語 Five\n000009|Nine updated",
     files: ["catalog.mst", "catalog.xrf"],
+    readback: [
+      {
+        mfn: 5,
+        status: "active",
+        fields: [
+          [24, "日本語 Five"],
+          [70, "Ada"],
+          [70, "Grace"],
+          [999, "original"],
+        ],
+      },
+      {
+        mfn: 9,
+        status: "active",
+        fields: [[24, "Nine updated"]],
+      },
+    ],
   });
   expect(result.deleted).toEqual({ exitCode: 0, fileState: false, retained: false });
 });

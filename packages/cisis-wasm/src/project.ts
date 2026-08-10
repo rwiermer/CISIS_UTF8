@@ -3,12 +3,14 @@ import { decodeProjectArchive, encodeProjectArchive } from "./archive.js";
 import type { CisisRunner } from "./index.js";
 import type {
   CisisInputFile,
+  CisisReadRecordsResult,
   CisisRunRequest,
   CisisRunResult,
   FormatRequest,
   IndexRequest,
   IsisScriptRequest,
   SearchRequest,
+  ReadRecordsRequest,
   WriteRecordsRequest,
 } from "./types.js";
 
@@ -22,6 +24,7 @@ export type ProjectIndexRequest = Omit<IndexRequest, "files">;
 export type ProjectSearchRequest = Omit<SearchRequest, "files">;
 export type ProjectIsisScriptRequest = Omit<IsisScriptRequest, "files">;
 export type ProjectWriteRecordsRequest = Omit<WriteRecordsRequest, "files">;
+export type ProjectReadRecordsRequest = Omit<ReadRecordsRequest, "files">;
 
 function bytes(data: CisisInputFile): Uint8Array {
   const value = typeof data === "string" ? new TextEncoder().encode(data) : data;
@@ -92,6 +95,10 @@ export class CisisProject {
     const result = await this.runner.writeRecords({ ...request, files: this.#fileRecord() });
     this.#absorb(result);
     return result;
+  }
+
+  readRecords(request: ProjectReadRecordsRequest): Promise<CisisReadRecordsResult> {
+    return this.runner.readRecords({ ...request, files: this.#fileRecord() });
   }
 
   search(request: ProjectSearchRequest): Promise<CisisRunResult> {
