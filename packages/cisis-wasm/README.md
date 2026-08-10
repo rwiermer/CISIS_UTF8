@@ -5,6 +5,8 @@ Each call receives a fresh in-memory filesystem. `CisisProject` retains files in
 the JavaScript host and supplies them to each call; only files explicitly
 requested from a run are added back to the project.
 
+Live playground: <https://rwiermer.github.io/CISIS_UTF8/>
+
 The repository also contains a dependency-free browser playground in `demo/`.
 It exercises structured records, PFT formatting, FST inversion and search,
 WXIS IsisScript, and low-level MX arguments through this public API. After the
