@@ -7,7 +7,10 @@
   <body>
     <output id="status">Running</output>
     <script type="module">
-      import { CisisRunner } from "/packages/cisis-wasm/dist/index.js";
+      import {
+        CisisProjectStore,
+        CisisRunner,
+      } from "/packages/cisis-wasm/dist/index.js";
 
       const status = document.querySelector("#status");
       const runner = new CisisRunner({ defaultTimeoutMs: 10_000 });
@@ -22,17 +25,28 @@
         const wxis = await runner.runIsisScript({ source });
         const isoResponse = await fetch("/wxis_src/examples/cds/cds.iso");
         if (!isoResponse.ok) throw new Error("Failed to load CDS ISO fixture");
-        const imported = await runner.run({
+        const project = runner.createProject({
+          "cds.iso": new Uint8Array(await isoResponse.arrayBuffer()),
+        });
+        const imported = await project.run({
           program: "mx",
           args: ["iso=cds.iso", "create=cds", "now"],
-          files: { "cds.iso": new Uint8Array(await isoResponse.arrayBuffer()) },
           returnFiles: ["cds.mst", "cds.xrf"],
         });
         if (imported.exitCode !== 0) throw new Error(imported.stderr || "CDS import failed");
-        const formatted = await runner.format({
+
+        const store = new CisisProjectStore("cisis-wasm-browser-test");
+        await store.save("cds", project.snapshot());
+        const persistedProjects = await store.list();
+        const snapshot = await store.load("cds");
+        if (!snapshot) throw new Error("Persisted CDS project was not found");
+        const restored = runner.createProject(snapshot.files);
+        await store.delete("cds");
+        store.close();
+
+        const formatted = await restored.format({
           database: "cds",
           pft: "mfn(4),'|',v24/",
-          files: imported.files,
           count: 2,
         });
         window.__cisisTestResult = {
@@ -43,6 +57,8 @@
             stdout: formatted.stdout,
             stderr: formatted.stderr,
           },
+          projectFiles: restored.listFiles(),
+          persistedProjects,
         };
         status.value = "Passed";
       } catch (error) {

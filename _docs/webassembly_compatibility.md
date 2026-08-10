@@ -11,7 +11,7 @@ differential tests. It is narrower than the complete CISIS feature set.
 | FST/index | Supported subset | bundled CDS techniques 0, 2, and 4; full inversion; six companion files |
 | Search | Supported subset | MX and WXIS Boolean retrieval against a generated inverted file |
 | Browser execution | Supported | dedicated Worker, request isolation, timeouts, returned files |
-| Persistent projects | Host-managed | callers retain and resubmit database and index files between requests |
+| Persistent projects | Supported | versioned snapshots retained in the host with optional IndexedDB storage |
 | Shell commands | Excluded | browser workers cannot create child processes |
 | Raw sockets | Excluded | networking belongs to the JavaScript host |
 | Host paths | Excluded | absolute paths and request-root traversal are rejected |
@@ -30,4 +30,5 @@ MST/XRF checksums, and subsequent selected PFT output remain compared.
 - Database delete, sort, and incremental inversion.
 - IsisScript XML conversion, temporary files, and explicit unsupported-operation errors.
 - Large-database limits and repeat-run performance budgets.
+- IndexedDB schema migrations, storage quota handling, and multi-tab coordination.
 - Firefox and WebKit browser execution.

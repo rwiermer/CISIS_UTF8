@@ -70,8 +70,10 @@ inferred from the misleadingly named native `SIXTY_FOUR` build flag.
   errors, includes, and the remaining grouped repository examples.
 - **IDE API bootstrap:** typed `format`, `index`, and `search` helpers now map
   validated requests onto the parity-tested MX runtime. They intentionally keep
-  project persistence in the JavaScript host; a direct C ABI and IndexedDB
-  project store remain M5 work.
+  project state in the JavaScript host. A `CisisProject` workspace now retains
+  explicitly returned files between isolated runs, produces versioned
+  snapshots, and optionally saves them in IndexedDB. A direct C ABI, schema
+  migrations, quota handling, and performance budgets remain M5 work.
 
 ## Architecture
 

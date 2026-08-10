@@ -1,6 +1,8 @@
 import { normalizeVirtualPath } from "./path.js";
+import { CisisProject } from "./project.js";
 import type { WorkerRunRequest, WorkerRunResponse } from "./protocol.js";
 import type {
+  CisisInputFile,
   CisisModuleUrls,
   CisisRunRequest,
   CisisRunResult,
@@ -25,6 +27,15 @@ export type {
   IsisScriptRequest,
   SearchRequest,
 } from "./types.js";
+export {
+  CisisProject,
+  type CisisProjectSnapshot,
+  type ProjectFormatRequest,
+  type ProjectIndexRequest,
+  type ProjectIsisScriptRequest,
+  type ProjectSearchRequest,
+} from "./project.js";
+export { CisisProjectStore } from "./persistence.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const DEFAULT_MAX_INPUT_BYTES = 64 * 1024 * 1024;
@@ -170,6 +181,10 @@ export class CisisRunner {
       });
       this.#pump();
     });
+  }
+
+  createProject(files: Record<string, CisisInputFile> = {}): CisisProject {
+    return new CisisProject(this, files);
   }
 
   runIsisScript(request: IsisScriptRequest): Promise<CisisRunResult> {
