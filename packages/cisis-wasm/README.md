@@ -37,6 +37,7 @@ const recordFormatted = await runner.formatRecord({
 
 await project.writeRecords({
   database: "cds",
+  expectedRevision: project.revision,
   records: [
     {
       mfn: 12,
@@ -92,7 +93,9 @@ complete records, and invalidate retained inverted-file companions so the IDE
 cannot search a stale index. `readRecords()` returns active records with exact
 byte-valued fields and preserves their order and repetitions. CISIS ISO export
 does not expose logically deleted record contents, so deleted-record readback is
-not yet part of the structured API.
+not yet part of the structured API. Project mutations are serialized and update
+the session-local `project.revision`. Supplying `expectedRevision` to
+`writeRecords()` rejects stale IDE edits with `CisisProjectConflictError`.
 
 The low-level `run()` method remains available for MX or WXIS arguments not yet
 represented by a helper. Pass `returnFiles` when a low-level operation creates

@@ -44,6 +44,7 @@ export type {
 } from "./types.js";
 export {
   CisisProject,
+  CisisProjectConflictError,
   type CisisProjectSnapshot,
   type ProjectFormatRequest,
   type ProjectIndexRequest,

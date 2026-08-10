@@ -155,6 +155,21 @@
           pft: "mfn(6),'|',v24/",
         });
         const readback = await editableProject.readRecords({ database: "catalog" });
+        const editingRevision = editableProject.revision;
+        let recordConflict;
+        try {
+          await editableProject.writeRecords({
+            database: "catalog",
+            records: [],
+            expectedRevision: editingRevision - 1,
+          });
+        } catch (error) {
+          recordConflict = {
+            name: error.name,
+            expectedRevision: error.expectedRevision,
+            actualRevision: error.actualRevision,
+          };
+        }
 
         const formatted = await restored.format({
           database: "cds",
@@ -197,6 +212,8 @@
                   : new TextDecoder().decode(field.value),
               ]),
             })),
+            revision: editingRevision,
+            conflict: recordConflict,
           },
           deleted: {
             exitCode: deleted.exitCode,

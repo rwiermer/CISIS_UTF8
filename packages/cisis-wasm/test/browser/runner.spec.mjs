@@ -54,6 +54,12 @@ test("runs MX/PFT and WXIS in the packaged browser worker", async ({ page }) => 
         fields: [[24, "Nine updated"]],
       },
     ],
+    revision: 2,
+    conflict: {
+      name: "CisisProjectConflictError",
+      expectedRevision: 1,
+      actualRevision: 2,
+    },
   });
   expect(result.deleted).toEqual({ exitCode: 0, fileState: false, retained: false });
 });

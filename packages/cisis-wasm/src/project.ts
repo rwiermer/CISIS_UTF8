@@ -23,7 +23,9 @@ export type ProjectFormatRequest = Omit<FormatRequest, "files">;
 export type ProjectIndexRequest = Omit<IndexRequest, "files">;
 export type ProjectSearchRequest = Omit<SearchRequest, "files">;
 export type ProjectIsisScriptRequest = Omit<IsisScriptRequest, "files">;
-export type ProjectWriteRecordsRequest = Omit<WriteRecordsRequest, "files">;
+export type ProjectWriteRecordsRequest = Omit<WriteRecordsRequest, "files"> & {
+  expectedRevision?: number;
+};
 export type ProjectReadRecordsRequest = Omit<ReadRecordsRequest, "files">;
 
 function bytes(data: CisisInputFile): Uint8Array {
@@ -31,13 +33,34 @@ function bytes(data: CisisInputFile): Uint8Array {
   return value.slice();
 }
 
+function equalBytes(left: Uint8Array | undefined, right: Uint8Array): boolean {
+  return left?.byteLength === right.byteLength &&
+    left.every((byte, index) => byte === right[index]);
+}
+
+export class CisisProjectConflictError extends Error {
+  readonly expectedRevision: number;
+  readonly actualRevision: number;
+
+  constructor(expectedRevision: number, actualRevision: number) {
+    super(`CISIS project revision conflict: expected ${expectedRevision}, actual ${actualRevision}`);
+    this.name = "CisisProjectConflictError";
+    this.expectedRevision = expectedRevision;
+    this.actualRevision = actualRevision;
+  }
+}
+
 export class CisisProject {
   readonly runner: CisisRunner;
   #files = new Map<string, Uint8Array>();
+  #mutationTail: Promise<void> = Promise.resolve();
+  #revision = 0;
 
   constructor(runner: CisisRunner, files: Record<string, CisisInputFile> = {}) {
     this.runner = runner;
-    for (const [path, data] of Object.entries(files)) this.writeFile(path, data);
+    for (const [path, data] of Object.entries(files)) {
+      this.#files.set(normalizeVirtualPath(path), bytes(data));
+    }
   }
 
   static fromArchive(runner: CisisRunner, archive: ArrayBuffer | Uint8Array): CisisProject {
@@ -46,6 +69,10 @@ export class CisisProject {
 
   listFiles(): string[] {
     return [...this.#files.keys()].sort();
+  }
+
+  get revision(): number {
+    return this.#revision;
   }
 
   hasFile(path: string): boolean {
@@ -57,11 +84,17 @@ export class CisisProject {
   }
 
   writeFile(path: string, data: CisisInputFile): void {
-    this.#files.set(normalizeVirtualPath(path), bytes(data));
+    const normalized = normalizeVirtualPath(path);
+    const value = bytes(data);
+    if (equalBytes(this.#files.get(normalized), value)) return;
+    this.#files.set(normalized, value);
+    this.#revision += 1;
   }
 
   deleteFile(path: string): boolean {
-    return this.#files.delete(normalizeVirtualPath(path));
+    const deleted = this.#files.delete(normalizeVirtualPath(path));
+    if (deleted) this.#revision += 1;
+    return deleted;
   }
 
   snapshot(): CisisProjectSnapshot {
@@ -73,52 +106,86 @@ export class CisisProject {
   }
 
   async run(request: CisisRunRequest): Promise<CisisRunResult> {
-    const result = await this.runner.run({
+    return this.#enqueueMutation((files) => this.runner.run({
       ...request,
-      files: { ...this.#fileRecord(), ...request.files },
-    });
-    this.#absorb(result);
-    return result;
+      files: { ...files, ...request.files },
+    }));
   }
 
   async format(request: ProjectFormatRequest): Promise<CisisRunResult> {
-    return this.runner.format({ ...request, files: this.#fileRecord() });
+    return this.runner.format({ ...request, files: await this.#stableFiles() });
   }
 
   async index(request: ProjectIndexRequest): Promise<CisisRunResult> {
-    const result = await this.runner.index({ ...request, files: this.#fileRecord() });
-    this.#absorb(result);
-    return result;
+    return this.#enqueueMutation((files) => this.runner.index({ ...request, files }));
   }
 
   async writeRecords(request: ProjectWriteRecordsRequest): Promise<CisisRunResult> {
-    const result = await this.runner.writeRecords({ ...request, files: this.#fileRecord() });
-    this.#absorb(result);
-    return result;
+    const { expectedRevision, ...writeRequest } = request;
+    return this.#enqueueMutation(
+      (files) => this.runner.writeRecords({ ...writeRequest, files }),
+      expectedRevision,
+    );
   }
 
-  readRecords(request: ProjectReadRecordsRequest): Promise<CisisReadRecordsResult> {
-    return this.runner.readRecords({ ...request, files: this.#fileRecord() });
+  async readRecords(request: ProjectReadRecordsRequest): Promise<CisisReadRecordsResult> {
+    return this.runner.readRecords({ ...request, files: await this.#stableFiles() });
   }
 
-  search(request: ProjectSearchRequest): Promise<CisisRunResult> {
-    return this.runner.search({ ...request, files: this.#fileRecord() });
+  async search(request: ProjectSearchRequest): Promise<CisisRunResult> {
+    return this.runner.search({ ...request, files: await this.#stableFiles() });
   }
 
   async runIsisScript(request: ProjectIsisScriptRequest): Promise<CisisRunResult> {
-    const result = await this.runner.runIsisScript({
+    return this.#enqueueMutation((files) => this.runner.runIsisScript({
       ...request,
-      files: this.#fileRecord(),
-    });
-    this.#absorb(result);
-    return result;
+      files,
+    }));
   }
 
   #absorb(result: CisisRunResult): void {
+    let changed = false;
     for (const [path, exists] of Object.entries(result.fileStates)) {
-      if (!exists) this.deleteFile(path);
+      if (!exists && this.#files.delete(normalizeVirtualPath(path))) changed = true;
     }
-    for (const [path, data] of Object.entries(result.files)) this.writeFile(path, data);
+    for (const [path, data] of Object.entries(result.files)) {
+      const normalized = normalizeVirtualPath(path);
+      if (equalBytes(this.#files.get(normalized), data)) continue;
+      this.#files.set(normalized, data.slice());
+      changed = true;
+    }
+    if (changed) this.#revision += 1;
+  }
+
+  #enqueueMutation(
+    execute: (files: Record<string, Uint8Array>) => Promise<CisisRunResult>,
+    expectedRevision?: number,
+  ): Promise<CisisRunResult> {
+    if (
+      expectedRevision !== undefined &&
+      (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0)
+    ) {
+      return Promise.reject(new Error("CISIS expectedRevision must be a non-negative integer"));
+    }
+    const operation = this.#mutationTail.then(async () => {
+      if (expectedRevision !== undefined && expectedRevision !== this.#revision) {
+        throw new CisisProjectConflictError(expectedRevision, this.#revision);
+      }
+      const startingRevision = this.#revision;
+      const result = await execute(this.#fileRecord());
+      if (this.#revision !== startingRevision) {
+        throw new CisisProjectConflictError(startingRevision, this.#revision);
+      }
+      this.#absorb(result);
+      return result;
+    });
+    this.#mutationTail = operation.then(() => undefined, () => undefined);
+    return operation;
+  }
+
+  async #stableFiles(): Promise<Record<string, Uint8Array>> {
+    await this.#mutationTail;
+    return this.#fileRecord();
   }
 
   #fileRecord(): Record<string, Uint8Array> {
