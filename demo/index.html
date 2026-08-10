@@ -31,6 +31,7 @@
       <button class="tab" type="button" role="tab" aria-selected="false" data-tab="search">FST + Search</button>
       <button class="tab" type="button" role="tab" aria-selected="false" data-tab="wxis">WXIS</button>
       <button class="tab" type="button" role="tab" aria-selected="false" data-tab="records">Records</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" data-tab="fdt">FDT</button>
       <button class="tab" type="button" role="tab" aria-selected="false" data-tab="mx">MX</button>
     </nav>
 
@@ -43,12 +44,7 @@
           </div>
           <span class="record-count" id="record-count">0 records</span>
         </div>
-        <div class="field-key" aria-label="Demo field map">
-          <span><b>24</b> title</span>
-          <span><b>70</b> author</span>
-          <span><b>69</b> subject</span>
-          <span><b>30</b> year</span>
-        </div>
+        <div class="field-key" id="field-key" aria-label="Demo field map"></div>
         <ol class="record-list" id="record-list"></ol>
       </aside>
 
@@ -59,7 +55,10 @@
               <span class="eyebrow">Display format</span>
               <h2>PFT</h2>
             </div>
-            <span class="dialect-badge">ABCD/CISIS</span>
+            <label class="example-picker" for="pft-example">
+              <span>Example</span>
+              <select id="pft-example"></select>
+            </label>
           </div>
           <label class="code-label" for="pft-source">Format</label>
           <textarea class="code-editor code-editor-large" id="pft-source" spellcheck="false"></textarea>
@@ -71,7 +70,10 @@
               <span class="eyebrow">Inverted file</span>
               <h2>FST + Search</h2>
             </div>
-            <span class="dialect-badge">Full inversion</span>
+            <label class="example-picker" for="search-example">
+              <span>Example</span>
+              <select id="search-example"></select>
+            </label>
           </div>
           <label class="code-label" for="fst-source">Field selection table</label>
           <textarea class="code-editor" id="fst-source" spellcheck="false"></textarea>
@@ -93,7 +95,10 @@
               <span class="eyebrow">IsisScript runtime</span>
               <h2>WXIS</h2>
             </div>
-            <span class="dialect-badge">XML source</span>
+            <label class="example-picker" for="wxis-example">
+              <span>Example</span>
+              <select id="wxis-example"></select>
+            </label>
           </div>
           <label class="code-label" for="wxis-source">IsisScript</label>
           <textarea class="code-editor code-editor-large" id="wxis-source" spellcheck="false"></textarea>
@@ -109,10 +114,28 @@
               <span class="eyebrow">Structured database API</span>
               <h2>Records</h2>
             </div>
-            <span class="dialect-badge">JSON</span>
+            <label class="example-picker" for="records-example">
+              <span>Example</span>
+              <select id="records-example"></select>
+            </label>
           </div>
           <label class="code-label" for="records-source">Complete record set</label>
           <textarea class="code-editor code-editor-large" id="records-source" spellcheck="false"></textarea>
+        </div>
+
+        <div class="operation-panel" id="panel-fdt" role="tabpanel" hidden>
+          <div class="editor-heading">
+            <div>
+              <span class="eyebrow">Field definition table</span>
+              <h2>FDT</h2>
+            </div>
+            <label class="example-picker" for="fdt-example">
+              <span>Example</span>
+              <select id="fdt-example"></select>
+            </label>
+          </div>
+          <label class="code-label" for="fdt-source">Legacy fixed-column FDT</label>
+          <textarea class="code-editor code-editor-large" id="fdt-source" spellcheck="false"></textarea>
         </div>
 
         <div class="operation-panel" id="panel-mx" role="tabpanel" hidden>
@@ -121,7 +144,10 @@
               <span class="eyebrow">Low-level utility</span>
               <h2>MX arguments</h2>
             </div>
-            <span class="dialect-badge">One per line</span>
+            <label class="example-picker" for="mx-example">
+              <span>Example</span>
+              <select id="mx-example"></select>
+            </label>
           </div>
           <label class="code-label" for="mx-source">Arguments</label>
           <textarea class="code-editor code-editor-large" id="mx-source" spellcheck="false"></textarea>

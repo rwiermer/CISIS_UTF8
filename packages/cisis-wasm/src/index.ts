@@ -64,6 +64,15 @@ export {
 } from "./persistence.js";
 export { decodeProjectArchive, encodeProjectArchive } from "./archive.js";
 export {
+  CisisFdtParseError,
+  parseCisisFdt,
+  validateCisisRecordsAgainstFdt,
+  type CisisFdtDefinition,
+  type CisisFdtField,
+  type CisisFdtValidationCode,
+  type CisisFdtValidationIssue,
+} from "./fdt.js";
+export {
   decodeCisisRecordExport,
   decodeIso2709Records,
   encodeIso2709Record,

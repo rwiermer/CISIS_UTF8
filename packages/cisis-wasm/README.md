@@ -26,6 +26,8 @@ import {
   CisisProject,
   CisisProjectStore,
   CisisRunner,
+  parseCisisFdt,
+  validateCisisRecordsAgainstFdt,
 } from "@abcd-community/cisis-wasm";
 
 const runner = new CisisRunner();
@@ -96,9 +98,19 @@ const restored = runner.createProject(saved?.files);
 
 const archive = project.exportArchive();
 const imported = CisisProject.fromArchive(runner, archive);
+
+const fdt = parseCisisFdt(fdtSource);
+const schemaIssues = validateCisisRecordsAgainstFdt(activeRecords.records, fdt);
 store.close();
 runner.dispose();
 ```
+
+`parseCisisFdt()` reads the legacy fixed-column CISIS FDT form used by the
+bundled CDS example. `validateCisisRecordsAgainstFdt()` checks structured
+records for declared tags, repeatability, maximum UTF-8 byte length, and
+subfield codes. Validation is explicit in the JavaScript host; MX itself does
+not automatically enforce an FDT during `writeRecords()`. The playground runs
+this validation before applying edited records.
 
 Structured records preserve field order, repeated tags, UTF-8 values, and PFT
 subfield syntax. `formatRecord()` imports exactly one active record as MFN 1;

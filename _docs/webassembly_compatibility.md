@@ -36,7 +36,8 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | Portable project archive | Verified in Chromium, Firefox, and WebKit | Deterministic binary archives preserve arbitrary file bytes without base64 and reject corrupt, oversized, duplicate, or escaping entries. |
 | Direct C API | Verified narrow export | One MX-only function writes a versioned record stream to MEMFS. It exposes no internal structs or allocator ownership and exists specifically because ISO export omits deleted records. |
 | Serializable record model | Verified subset | Ordered fields accept text or byte values; writes and reads preserve repeated fields, explicit MFNs, and logical deletion, and project revisions prevent silent lost updates. Reads/writes are bounded to 1,000 records per call. |
-| Interactive playground | Verified in browser matrix | The static public-API client edits demo records and executes PFT, FST/full inversion, Boolean search, WXIS IsisScript, and raw MX arguments. Output is rendered as text, and the staged artifact is deployable through GitHub Pages. |
+| Interactive playground | Verified in browser matrix | The static public-API client edits demo records and FDT schemas, then executes PFT, FST/full inversion, Boolean search, WXIS IsisScript, FDT validation, and raw MX arguments. Output is rendered as text, and the staged artifact is deployable through GitHub Pages. |
+| FDT schema support | Verified host-side subset | `parseCisisFdt()` reads legacy fixed-column FDT files; `validateCisisRecordsAgainstFdt()` reports unknown tags, non-repeatable occurrences, UTF-8 byte-limit violations, and undeclared subfields. The playground uses the parsed schema for its field map and validates record edits before writing. |
 
 ## Language and workflow coverage
 
@@ -49,6 +50,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | FST and inversion | Supported subset | bundled CDS techniques 0, 2, and 4; full inversion through the in-process CISIS sorter | other techniques, stopword/table variants, and incremental inversion |
 | Search | Supported subset | MX and WXIS Boolean retrieval, a compound `AND`, and one WXIS malformed-expression path | broader syntax-error matrix, prefixes, sets, logs, and larger result sets |
 | UTF-8 | Supported subset | combining characters plus asserted Polish, Japanese, and Greek output | table-driven case conversion and deliberately invalid byte sequences |
+| FDT | Supported host-side subset | fixed-column parsing, field names/tags, subfields, maximum byte length, repeatability, and structured-record validation | ABCD pipe-delimited FDT variants, data-entry worksheets, and legacy FDT-driven XML conversion |
 
 ## Differential scenarios
 
@@ -141,7 +143,8 @@ MST/XRF checksums, and subsequent selected PFT output remain compared.
 - Add more PFT/search syntax-error cases and invalid-byte fixtures.
 - Cover database sort, incremental inversion, and more deletion/reactivation
   transitions.
-- Cover IsisScript XML, temporary files, and unsupported-operation errors.
+- Cover IsisScript XML, including the missing `record2xml.xic` dependency,
+  temporary files, and unsupported-operation errors.
 - Measure browser cold start, memory, upload time, and large-database behavior.
 - Define IndexedDB quota budgets/recovery and multi-tab behavior.
 - Add sanitizer builds, fuzz smoke tests, release provenance, checksums, SBOM,

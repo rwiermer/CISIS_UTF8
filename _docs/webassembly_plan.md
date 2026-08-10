@@ -57,7 +57,7 @@ but it is not yet a hardened or published release.
 | M2 browser runner | Operational | Strict-TypeScript Worker runner, isolation, validation, limits, cancellation by Worker replacement, returned files, and basic diagnostics are implemented. The packaged Worker workflow passes in Chromium, Firefox, and WebKit. |
 | M3 differential suite | Partial | Twelve data-driven scenarios cover exact combining and non-Latin UTF-8, PFT subfields/modes/functions/missing/repeated fields, structured record formatting and database writes, logical deletion, PFT and search errors, WXIS flow/includes, ISO import/export, database reads/updates, file deletion, full inversion, and simple/compound search. More mutation and parser cases remain. |
 | M4 WXIS IsisScript | Partial | Hello/display, fields, loops, CGI parameters, includes, database import/export/update, file deletion, and search match native behavior in covered cases. Other host operations, temporary files, and XML remain to be classified and tested. |
-| M5 IDE APIs and persistence | Partial | CLI-backed helpers, active/deleted structured readback through one narrow C export, MFN/status-preserving writes, optimistic project revisions, snapshots, IndexedDB migration/typed failures, deterministic archives, a public-API playground, performance reporting, and artifact budgets are implemented. Quota recovery, multi-tab behavior, and broader browser performance budgets remain. |
+| M5 IDE APIs and persistence | Partial | CLI-backed helpers, active/deleted structured readback through one narrow C export, MFN/status-preserving writes, legacy FDT parsing/record validation, optimistic project revisions, snapshots, IndexedDB migration/typed failures, deterministic archives, a public-API playground, performance reporting, and artifact budgets are implemented. Quota recovery, multi-tab behavior, and broader browser performance budgets remain. |
 | M6 hardening and release | Partial | CI runs the packaged Worker and playground workflows in desktop Chromium, Firefox, and WebKit plus mobile Chromium/WebKit viewports, enforces Wasm artifact budgets, publishes compatibility/performance reports, and can deploy the playground to GitHub Pages. Sanitizer/fuzz jobs, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
 
 The current green reference is implementation commit
@@ -357,7 +357,7 @@ The current repository has:
 
 ```text
 packages/cisis-wasm/       TypeScript API, Worker, project storage, and tests
-demo/                      static PFT/FST/search/WXIS/MX playground
+demo/                      static PFT/FST/search/WXIS/FDT/MX playground
 scripts/build-pages.mjs    deterministic Pages artifact staging
 tests/native/              native compatibility smoke test
 tests/wasm/                generated-module and packaged-runtime smoke tests
@@ -387,7 +387,7 @@ The detailed evidence and exclusions are maintained in
 | PFT formatting | Parity for covered combining/non-Latin UTF-8, subfields, modes, functions, missing/repeated fields, and one syntax error | More functions/errors and undocumented extensions remain test-driven |
 | IsisScript | Flow, includes, DB import/read/search/update | XML, temporary-file, error, shell, and socket cases remain |
 | FST/indexing | Full inversion and search for bundled CDS FST | Other techniques, incremental inversion, and large databases |
-| Database formats | ISIS1660 MST/XRF and companion index files; active/deleted structured readback and MFN/status-preserving writes | Other layout variants after fixture coverage |
+| Database formats | ISIS1660 MST/XRF and companion index files; active/deleted structured readback, MFN/status-preserving writes, and host-side legacy FDT validation | Other layout variants and FDT-driven legacy XML conversion after fixture coverage |
 | Persistence | Host-managed files, versioned snapshots, IndexedDB schema migration and typed failures, deterministic import/export archive | Quota budgets/recovery and multi-tab coordination |
 | Concurrency | One serialized runtime per worker | Worker pool only after memory measurement |
 | Networking | JavaScript host fetches files before execution | Native socket compatibility excluded |
