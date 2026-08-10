@@ -24,6 +24,17 @@ const formatted = await project.format({
   count: 10,
 });
 
+const recordFormatted = await runner.formatRecord({
+  record: {
+    fields: [
+      { tag: 24, value: "A title" },
+      { tag: 70, value: "First author" },
+      { tag: 70, value: "Second author" },
+    ],
+  },
+  pft: "v24/, (v70/)",
+});
+
 await project.index({
   database: "cds",
   fst: "70 0 MHU,(V70/)\n24 4 MHU,V24\n",

@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 import { executeRequest } from "../../packages/cisis-wasm/dist/worker-runtime.js";
+import { encodeIso2709Record } from "../../packages/cisis-wasm/dist/record.js";
 import { scenarios } from "./scenarios.mjs";
 
 function parseArguments(args) {
@@ -39,6 +40,8 @@ async function loadInputs(root, definitions) {
   for (const [name, definition] of Object.entries(definitions)) {
     const data = definition.source
       ? await readFile(resolve(root, definition.source))
+      : definition.record
+        ? encodeIso2709Record(definition.record)
       : Buffer.from(definition.text, "utf8");
     files.set(name, data);
   }

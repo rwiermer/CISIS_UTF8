@@ -1,13 +1,17 @@
 import { normalizeVirtualPath } from "./path.js";
 import { CisisProject } from "./project.js";
+import { encodeIso2709Record } from "./record.js";
 import type { WorkerRunRequest, WorkerRunResponse } from "./protocol.js";
 import type {
   CisisInputFile,
+  CisisRecord,
+  CisisRecordField,
   CisisModuleUrls,
   CisisRunRequest,
   CisisRunResult,
   CisisRunnerOptions,
   FormatRequest,
+  FormatRecordRequest,
   IndexRequest,
   IsisScriptRequest,
   SearchRequest,
@@ -17,12 +21,15 @@ export type {
   CisisDiagnostic,
   CisisDiagnosticCategory,
   CisisInputFile,
+  CisisRecord,
+  CisisRecordField,
   CisisModuleUrls,
   CisisProgram,
   CisisRunRequest,
   CisisRunResult,
   CisisRunnerOptions,
   FormatRequest,
+  FormatRecordRequest,
   IndexRequest,
   IsisScriptRequest,
   SearchRequest,
@@ -37,6 +44,7 @@ export {
 } from "./project.js";
 export { CisisProjectStore } from "./persistence.js";
 export { decodeProjectArchive, encodeProjectArchive } from "./archive.js";
+export { encodeIso2709Record } from "./record.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const DEFAULT_MAX_INPUT_BYTES = 64 * 1024 * 1024;
@@ -226,6 +234,27 @@ export class CisisRunner {
       ...(request.files === undefined ? {} : { files: request.files }),
       ...optionalTimeout(request.timeoutMs),
     });
+  }
+
+  async formatRecord(request: FormatRecordRequest): Promise<CisisRunResult> {
+    const isoPath = "__cisis/record.iso";
+    const database = "__cisis/record";
+    const imported = await this.run({
+      program: "mx",
+      args: [`iso=marc=${isoPath}`, `create=${database}`, "now"],
+      files: { [isoPath]: encodeIso2709Record(request.record) },
+      returnFiles: [`${database}.mst`, `${database}.xrf`],
+      ...optionalTimeout(request.timeoutMs),
+    });
+    if (imported.exitCode !== 0) return imported;
+
+    const formatted = await this.format({
+      database,
+      pft: request.pft,
+      files: imported.files,
+      ...optionalTimeout(request.timeoutMs),
+    });
+    return { ...formatted, durationMs: imported.durationMs + formatted.durationMs };
   }
 
   index(request: IndexRequest): Promise<CisisRunResult> {

@@ -24,6 +24,17 @@
         });
         const source = await fetch("/wxis_src/examples/hello.xis").then((response) => response.text());
         const wxis = await runner.runIsisScript({ source });
+        const recordFormatted = await runner.formatRecord({
+          record: {
+            fields: [
+              { tag: 24, value: "日本語 title" },
+              { tag: 70, value: "Ada" },
+              { tag: 70, value: "Grace" },
+              { tag: 26, value: "^aParis^bPress" },
+            ],
+          },
+          pft: "v24,'|',(v70+|;|),'|',v26^a,'|',v26^b/",
+        });
         const deleteSource = await fetch("/wxis_src/examples/delfile.xis").then(
           (response) => response.text(),
         );
@@ -66,6 +77,11 @@
         window.__cisisTestResult = {
           mx: { exitCode: mx.exitCode, stdout: mx.stdout, stderr: mx.stderr },
           wxis: { exitCode: wxis.exitCode, stdout: wxis.stdout, stderr: wxis.stderr },
+          recordFormatted: {
+            exitCode: recordFormatted.exitCode,
+            stdout: recordFormatted.stdout,
+            stderr: recordFormatted.stderr,
+          },
           formatted: {
             exitCode: formatted.exitCode,
             stdout: formatted.stdout,

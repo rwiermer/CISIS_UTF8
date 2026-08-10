@@ -2,6 +2,17 @@ export type CisisProgram = "mx" | "wxis";
 
 export type CisisInputFile = string | Uint8Array;
 
+export interface CisisRecordField {
+  tag: number;
+  value: CisisInputFile;
+}
+
+export interface CisisRecord {
+  mfn?: number;
+  status?: "active" | "deleted";
+  fields: readonly CisisRecordField[];
+}
+
 export type CisisDiagnosticCategory =
   | "argument"
   | "format"
@@ -68,6 +79,12 @@ export interface FormatRequest {
   files?: Record<string, CisisInputFile>;
   from?: number;
   count?: number;
+  timeoutMs?: number;
+}
+
+export interface FormatRecordRequest {
+  record: CisisRecord;
+  pft: string;
   timeoutMs?: number;
 }
 

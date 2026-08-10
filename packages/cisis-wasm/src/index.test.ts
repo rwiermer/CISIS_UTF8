@@ -159,6 +159,57 @@ test("builds IDE-oriented format, index, and search requests", async () => {
   runner.dispose();
 });
 
+test("formats an ordered structured record through ISO import", async () => {
+  const worker = new MockWorker();
+  const runner = new CisisRunner({
+    moduleUrls: { mx: "mx.mjs", wxis: "wxis.mjs" },
+    workerFactory: () => worker as unknown as Worker,
+  });
+
+  const pending = runner.formatRecord({
+    record: {
+      fields: [
+        { tag: 24, value: "A title" },
+        { tag: 70, value: "First" },
+        { tag: 70, value: "Second" },
+      ],
+    },
+    pft: "v24/",
+  });
+  assert.deepEqual(worker.messages[0]?.request.args, [
+    "iso=marc=__cisis/record.iso",
+    "create=__cisis/record",
+    "now",
+  ]);
+  assert.ok(worker.messages[0]?.request.files?.["__cisis/record.iso"] instanceof Uint8Array);
+
+  worker.respond({
+    type: "result",
+    id: worker.messages[0]!.id,
+    result: {
+      ...success("imported"),
+      files: {
+        "__cisis/record.mst": new Uint8Array([1]),
+        "__cisis/record.xrf": new Uint8Array([2]),
+      },
+      durationMs: 2,
+    },
+  });
+  await Promise.resolve();
+  assert.deepEqual(worker.messages[1]?.request.args, [
+    "__cisis/record",
+    "pft=v24/",
+    "lw=0",
+    "now",
+  ]);
+
+  worker.respond({ type: "result", id: worker.messages[1]!.id, result: success("A title") });
+  const formatted = await pending;
+  assert.equal(formatted.stdout, "A title");
+  assert.equal(formatted.durationMs, 3);
+  runner.dispose();
+});
+
 test("rejects unsafe database names in IDE helpers", () => {
   const runner = new CisisRunner();
   assert.throws(() => runner.format({ database: "../outside", pft: "v1" }), /escapes/);

@@ -120,6 +120,44 @@ export const scenarios = [
     ],
   },
   {
+    name: "structured-record-format",
+    group: "pft",
+    files: {
+      "record.iso": {
+        record: {
+          fields: [
+            { tag: 24, value: "日本語 title" },
+            { tag: 70, value: "Ada" },
+            { tag: 70, value: "Grace" },
+            { tag: 26, value: "^aParis^bPress" },
+          ],
+        },
+      },
+    },
+    steps: [
+      {
+        program: "mx",
+        args: ["iso=marc=record.iso", "create=record", "now"],
+        outputs: ["record.mst", "record.xrf"],
+        compareStdout: false,
+      },
+      {
+        program: "mx",
+        args: [
+          "record",
+          "pft=v24,'|',(v70+|;|),'|',v26^a,'|',v26^b/",
+          "lw=0",
+          "now",
+        ],
+        expected: {
+          exitCode: 0,
+          stdout: "日本語 title|Ada;Grace|Paris|Press",
+          stderr: "",
+        },
+      },
+    ],
+  },
+  {
     name: "wxis-file-delete",
     group: "isisscript",
     files: {
