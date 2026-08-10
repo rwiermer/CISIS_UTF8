@@ -8,6 +8,7 @@
     <output id="status">Running</output>
     <script type="module">
       import {
+        CisisProject,
         CisisProjectStore,
         CisisRunner,
       } from "/packages/cisis-wasm/dist/index.js";
@@ -52,7 +53,8 @@
         const persistedProjects = await store.list();
         const snapshot = await store.load("cds");
         if (!snapshot) throw new Error("Persisted CDS project was not found");
-        const restored = runner.createProject(snapshot.files);
+        const archive = project.exportArchive();
+        const restored = CisisProject.fromArchive(runner, archive);
         await store.delete("cds");
         store.close();
 
@@ -71,6 +73,8 @@
           },
           projectFiles: restored.listFiles(),
           persistedProjects,
+          persistedFileCount: Object.keys(snapshot.files).length,
+          archiveBytes: archive.byteLength,
           deleted: {
             exitCode: deleted.exitCode,
             fileState: deleted.fileStates["delete-me.txt"],

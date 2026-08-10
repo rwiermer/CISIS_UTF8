@@ -1,4 +1,5 @@
 import { normalizeVirtualPath } from "./path.js";
+import { decodeProjectArchive, encodeProjectArchive } from "./archive.js";
 import type { CisisRunner } from "./index.js";
 import type {
   CisisInputFile,
@@ -34,6 +35,10 @@ export class CisisProject {
     for (const [path, data] of Object.entries(files)) this.writeFile(path, data);
   }
 
+  static fromArchive(runner: CisisRunner, archive: ArrayBuffer | Uint8Array): CisisProject {
+    return new CisisProject(runner, decodeProjectArchive(archive).files);
+  }
+
   listFiles(): string[] {
     return [...this.#files.keys()].sort();
   }
@@ -56,6 +61,10 @@ export class CisisProject {
 
   snapshot(): CisisProjectSnapshot {
     return { schemaVersion: 1, files: this.#fileRecord() };
+  }
+
+  exportArchive(): Uint8Array {
+    return encodeProjectArchive(this.snapshot());
   }
 
   async run(request: CisisRunRequest): Promise<CisisRunResult> {

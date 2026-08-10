@@ -36,6 +36,7 @@ export {
   type ProjectSearchRequest,
 } from "./project.js";
 export { CisisProjectStore } from "./persistence.js";
+export { decodeProjectArchive, encodeProjectArchive } from "./archive.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const DEFAULT_MAX_INPUT_BYTES = 64 * 1024 * 1024;

@@ -7,6 +7,7 @@ requested from a run are added back to the project.
 
 ```ts
 import {
+  CisisProject,
   CisisProjectStore,
   CisisRunner,
 } from "@abcd-community/cisis-wasm";
@@ -43,6 +44,9 @@ const store = new CisisProjectStore();
 await store.save("demo", project.snapshot());
 const saved = await store.load("demo");
 const restored = runner.createProject(saved?.files);
+
+const archive = project.exportArchive();
+const imported = CisisProject.fromArchive(runner, archive);
 store.close();
 runner.dispose();
 ```
@@ -53,7 +57,8 @@ or changes files that the project must retain. Pass `inspectFiles` for paths
 whose existence must be synchronized after a run; `CisisProject` removes a
 retained file when the result reports that it no longer exists. IndexedDB
 storage is optional; snapshots are plain versioned objects and can also be
-exported by the host.
+exported by the host. Project archives are deterministic binary `Uint8Array`
+values suitable for download or upload without base64 conversion.
 
 PFT, FST, search expressions, and IsisScript output are untrusted user input
 from the host application's perspective. Render generated HTML only after
