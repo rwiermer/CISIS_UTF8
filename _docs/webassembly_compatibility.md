@@ -8,11 +8,11 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 
 - Package version: `0.1.0-dev` (private preview).
 - Validated implementation: commit
-  [`07c9ef6`](https://github.com/rwiermer/CISIS_UTF8/commit/07c9ef696c393f2b135e9006ce4a20bc16fae0dc).
+  [`2bbe695`](https://github.com/rwiermer/CISIS_UTF8/commit/2bbe6952a7e17ef758408f076fe8505abaaaebbe).
 - Toolchain: Emscripten 6.0.4, wasm32, 32-bit `LONGX`.
 - Native parity oracle: the same commit built as 32-bit Linux ISIS1660.
 - Green reference: GitHub Actions run
-  [`31417403958`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31417403958),
+  [`31419373725`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31419373725),
   2026-08-10.
 - Browsers tested in CI: headless desktop Chromium, Firefox, and WebKit, plus
   Pixel-class Chromium and iPhone-class WebKit viewports.

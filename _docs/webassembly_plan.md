@@ -61,14 +61,14 @@ but it is not yet a hardened or published release.
 | M6 hardening and release | Partial | CI runs the packaged Worker and playground workflows in desktop Chromium, Firefox, and WebKit plus mobile Chromium/WebKit viewports, enforces Wasm artifact budgets, publishes compatibility/performance reports, and can deploy the playground to GitHub Pages. Sanitizer/fuzz jobs, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
 
 The current green reference is implementation commit
-[`07c9ef6`](https://github.com/rwiermer/CISIS_UTF8/commit/07c9ef696c393f2b135e9006ce4a20bc16fae0dc),
+[`2bbe695`](https://github.com/rwiermer/CISIS_UTF8/commit/2bbe6952a7e17ef758408f076fe8505abaaaebbe),
 validated by GitHub Actions run
-[`31417403958`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31417403958)
+[`31419373725`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31419373725)
 on 2026-08-10.
 
 The interactive playground is deployed at
 <https://rwiermer.github.io/CISIS_UTF8/> by Pages run
-[`31417404074`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31417404074).
+[`31419373340`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31419373340).
 
 ### Next priorities
 
