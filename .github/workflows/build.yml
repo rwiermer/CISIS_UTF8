@@ -40,11 +40,25 @@ jobs:
         run: cmake --build --preset native-32 --parallel 2
       - name: Test
         run: ctest --preset native-32
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cisis-native-32
+          path: |
+            build/native-32/cisis-mx
+            build/native-32/cisis-wxis
+          if-no-files-found: error
 
   wasm:
+    needs: native-32
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: cisis-native-32
+          path: build/native-32
+      - name: Install 32-bit compatibility runtime
+        run: sudo apt-get update && sudo apt-get install --yes libc6-i386
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: 6.0.4
@@ -69,6 +83,16 @@ jobs:
             "$PWD/build/wasm/cisis-mx.mjs" \
             "$PWD/build/wasm/cisis-wxis.mjs" \
             "$PWD"
+      - name: Test native and WebAssembly compatibility
+        run: |
+          chmod +x build/native-32/cisis-mx build/native-32/cisis-wxis
+          node tests/compat/differential.mjs \
+            --native-mx "$PWD/build/native-32/cisis-mx" \
+            --native-wxis "$PWD/build/native-32/cisis-wxis" \
+            --wasm-mx "$PWD/build/wasm/cisis-mx.mjs" \
+            --wasm-wxis "$PWD/build/wasm/cisis-wxis.mjs" \
+            --root "$PWD" \
+            --report "$PWD/build/compatibility-report.json"
       - name: Install Chromium
         run: npx --prefix packages/cisis-wasm playwright install --with-deps chromium
       - name: Test browser worker
@@ -79,5 +103,6 @@ jobs:
           path: |
             build/wasm/*.mjs
             build/wasm/*.wasm
+            build/compatibility-report.json
             packages/cisis-wasm/dist/
           if-no-files-found: error

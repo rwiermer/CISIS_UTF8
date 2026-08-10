@@ -57,8 +57,13 @@ inferred from the misleadingly named native `SIXTY_FOUR` build flag.
   diagnostics, enforces resource limits, and replaces timed-out workers.
 - **Browser verification:** headless Chromium loads the staged package with its
   default module URLs and executes both MX/PFT and WXIS.
-- **Next:** M3 differential coverage should expand beyond the current CDS,
-  UTF-8, PFT, and `hello.xis` smoke cases into the grouped repository examples.
+- **M3 differential suite:** a data-driven runner now executes the same PFT,
+  UTF-8, WXIS, ISO import, and database-read scenarios with native 32-bit and
+  WebAssembly binaries. It compares status and narrowly normalized output,
+  carries generated databases between steps, and publishes a checksum-bearing
+  JSON report. Further examples can be promoted by extending the scenario list.
+- **Next:** broaden M3 into FST/inverted-file search, database mutation, syntax
+  errors, includes, and the remaining grouped repository examples.
 
 ## Architecture
 
