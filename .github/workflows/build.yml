@@ -100,8 +100,8 @@ jobs:
             "$PWD/build/wasm/cisis-wxis.mjs" \
             "$PWD" \
             "$PWD/build/performance-report.json"
-      - name: Install Chromium
-        run: npx --prefix packages/cisis-wasm playwright install --with-deps chromium
+      - name: Install browsers
+        run: npx --prefix packages/cisis-wasm playwright install --with-deps chromium firefox webkit
       - name: Test browser worker
         run: npm run test:browser --prefix packages/cisis-wasm
       - uses: actions/upload-artifact@v4

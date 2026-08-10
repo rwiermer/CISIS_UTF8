@@ -14,7 +14,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 - Green reference: GitHub Actions run
   [`31414950441`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31414950441),
   2026-08-10.
-- Browser currently tested in CI: headless Chromium.
+- Browsers tested in CI: headless Chromium, Firefox, and WebKit.
 
 ## Runtime and API
 
@@ -22,16 +22,16 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | --- | --- | --- |
 | Low-level execution | Verified | `run()` invokes MX or WXIS in a module Worker and returns status, stdout, stderr, diagnostics, duration, requested files, and inspected file-presence states. |
 | PFT formatting helper | Verified | `format()` runs a PFT against caller-supplied ISIS1660 database files. |
-| Structured record formatting | Verified in Chromium/native-Wasm parity | `formatRecord()` preserves ordered and repeated fields, UTF-8 values, and PFT subfield syntax while importing one active record as MFN 1. |
-| Structured database writes | Verified in Chromium/native-Wasm parity | `writeRecords()` creates or upserts up to 1,000 complete records with explicit MFNs and active/deleted status, then invalidates stale index companions. MFNs are limited to 1,000,000 and one field tag must be unused by the batch for transient import metadata. |
-| Structured database reads | Verified in Node and Chromium | `readRecords()` uses a versioned direct C export to return active and logically deleted records with explicit MFNs, ordered/repeated tags, and byte-valued fields. Reads default to and are limited to 1,000 records per call. |
+| Structured record formatting | Verified in Chromium, Firefox, WebKit, and native-Wasm parity | `formatRecord()` preserves ordered and repeated fields, UTF-8 values, and PFT subfield syntax while importing one active record as MFN 1. |
+| Structured database writes | Verified in Chromium, Firefox, WebKit, and native-Wasm parity | `writeRecords()` creates or upserts up to 1,000 complete records with explicit MFNs and active/deleted status, then invalidates stale index companions. MFNs are limited to 1,000,000 and one field tag must be unused by the batch for transient import metadata. |
+| Structured database reads | Verified in Node, Chromium, Firefox, and WebKit | `readRecords()` uses a versioned direct C export to return active and logically deleted records with explicit MFNs, ordered/repeated tags, and byte-valued fields. Reads default to and are limited to 1,000 records per call. |
 | FST indexing helper | Verified | `index()` performs full inversion and returns `.cnt`, `.ifp`, `.l01`, `.l02`, `.n01`, and `.n02`. |
 | Search helper | Verified | `search()` executes an MX Boolean expression against supplied database and index files. |
 | IsisScript helper | Verified subset | `runIsisScript()` maps source, parameters, and files to request-local WXIS arguments. |
 | Project workspace | Verified | `CisisProject` retains host-side files, serializes mutations, makes reads wait for queued writes, exposes a session-local revision, rejects stale optimistic writes, and discards results after overlapping host edits. |
 | Project snapshots | Verified | Snapshots use schema version 1 and defensive `Uint8Array` copies. |
-| IndexedDB persistence | Verified in Chromium | `CisisProjectStore` supports save, load, list, delete, and close; v1 databases migrate to v2 with binary data intact, and blocked/corrupt/quota failures have typed codes. |
-| Portable project archive | Verified in Chromium | Deterministic binary archives preserve arbitrary file bytes without base64 and reject corrupt, oversized, duplicate, or escaping entries. |
+| IndexedDB persistence | Verified in Chromium, Firefox, and WebKit | `CisisProjectStore` supports save, load, list, delete, and close; v1 databases migrate to v2 with binary data intact, and blocked/corrupt/quota failures have typed codes. |
+| Portable project archive | Verified in Chromium, Firefox, and WebKit | Deterministic binary archives preserve arbitrary file bytes without base64 and reject corrupt, oversized, duplicate, or escaping entries. |
 | Direct C API | Verified narrow export | One MX-only function writes a versioned record stream to MEMFS. It exposes no internal structs or allocator ownership and exists specifically because ISO export omits deleted records. |
 | Serializable record model | Verified subset | Ordered fields accept text or byte values; writes and reads preserve repeated fields, explicit MFNs, and logical deletion, and project revisions prevent silent lost updates. Reads/writes are bounded to 1,000 records per call. |
 
@@ -139,7 +139,8 @@ MST/XRF checksums, and subsequent selected PFT output remain compared.
 - Cover database sort, incremental inversion, and more deletion/reactivation
   transitions.
 - Cover IsisScript XML, temporary files, and unsupported-operation errors.
-- Add Firefox and WebKit Playwright jobs.
+- Add mobile viewport coverage to the Chromium, Firefox, and WebKit Playwright
+  matrix.
 - Measure browser cold start, memory, upload time, and large-database behavior.
 - Define IndexedDB quota budgets/recovery and multi-tab behavior.
 - Add sanitizer builds, fuzz smoke tests, release provenance, checksums, SBOM,
