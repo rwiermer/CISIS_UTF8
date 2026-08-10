@@ -3,7 +3,9 @@ import type { CisisDiagnostic, CisisDiagnosticCategory } from "./types.js";
 function categoryFor(line: string): CisisDiagnosticCategory {
   const lower = line.toLowerCase();
   if (lower.includes("unsupported")) return "unsupported";
-  if (lower.includes("format") || lower.includes("pft")) return "format";
+  if (lower.includes("format") || lower.includes("pft") || lower.includes("fmt_error")) {
+    return "format";
+  }
   if (lower.includes("file") || lower.includes("open") || lower.includes("path")) {
     return "filesystem";
   }
@@ -20,14 +22,16 @@ export function collectDiagnostics(stdout: string, stderr: string): CisisDiagnos
     if (!raw) continue;
     const isError =
       /^fatal:/i.test(raw) ||
+      /^\*{3}\s*fmt_error=\d+/i.test(raw) ||
       /^WXIS\|/i.test(raw) ||
       /\b(error|invalid|missing|unsupported)\b/i.test(raw);
     const isWarning = /\bwarning\b/i.test(raw);
     if (!isError && !isWarning) continue;
 
+    const formatError = /^\*{3}\s*fmt_error=(\d+)/i.exec(raw);
     diagnostics.push({
       category: categoryFor(raw),
-      message: raw.replace(/^fatal:\s*/i, ""),
+      message: formatError ? `PFT format error ${formatError[1]}` : raw.replace(/^fatal:\s*/i, ""),
       raw,
       severity: isError ? "error" : "warning",
     });

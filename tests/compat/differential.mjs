@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import process from "node:process";
@@ -72,6 +72,19 @@ async function collectNativeOutputs(directory, names) {
   return files;
 }
 
+async function collectNativeStates(directory, names) {
+  const states = {};
+  for (const name of names ?? []) {
+    try {
+      await access(join(directory, name));
+      states[name] = true;
+    } catch {
+      states[name] = false;
+    }
+  }
+  return states;
+}
+
 function comparableResult(result, outputNames) {
   const outputChecksums = {};
   for (const name of outputNames ?? []) outputChecksums[name] = checksum(result.files[name]);
@@ -80,6 +93,7 @@ function comparableResult(result, outputNames) {
     stdout: normalizeOutput(result.stdout),
     stderr: normalizeOutput(result.stderr),
     outputChecksums,
+    fileStates: result.fileStates,
   };
 }
 
@@ -116,8 +130,26 @@ function assertEquivalent(scenario, stepIndex, step, native, wasm) {
       wasm: wasm.outputChecksums,
     };
   }
+  if (JSON.stringify(native.fileStates) !== JSON.stringify(wasm.fileStates)) {
+    differences.fileStates = { native: native.fileStates, wasm: wasm.fileStates };
+  }
   if (Object.keys(differences).length > 0) {
     throw new Error(`${scenario} step ${stepIndex + 1} differs\n${JSON.stringify(differences, null, 2)}`);
+  }
+}
+
+function assertExpected(scenario, stepIndex, actual, expected) {
+  if (!expected) return;
+  const differences = {};
+  for (const field of ["exitCode", "stdout", "stderr", "fileStates"]) {
+    if (expected[field] !== undefined && JSON.stringify(actual[field]) !== JSON.stringify(expected[field])) {
+      differences[field] = { expected: expected[field], actual: actual[field] };
+    }
+  }
+  if (Object.keys(differences).length > 0) {
+    throw new Error(
+      `${scenario} step ${stepIndex + 1} did not meet its expectation\n${JSON.stringify(differences, null, 2)}`,
+    );
   }
 }
 
@@ -155,12 +187,14 @@ for (const scenario of scenarios) {
     for (const [stepIndex, step] of scenario.steps.entries()) {
       const nativeRaw = nativeStep(nativeExecutables, directory, step);
       nativeRaw.files = await collectNativeOutputs(directory, step.outputs);
+      nativeRaw.fileStates = await collectNativeStates(directory, step.inspectFiles);
 
       const wasmRaw = await executeRequest(requestId, wasmModules[step.program], {
         program: step.program,
         args: step.args,
         files: Object.fromEntries(wasmFiles),
         returnFiles: step.outputs,
+        inspectFiles: step.inspectFiles,
       });
       requestId += 1;
 
@@ -168,6 +202,7 @@ for (const scenario of scenarios) {
       const native = comparableResult(nativeRaw, step.outputs);
       const wasm = comparableResult(wasmRaw, step.outputs);
       assertEquivalent(scenario.name, stepIndex, step, native, wasm);
+      assertExpected(scenario.name, stepIndex, native, step.expected);
       scenarioReport.steps.push({
         program: step.program,
         args: step.args,
@@ -176,7 +211,9 @@ for (const scenario of scenarios) {
           stdout: step.compareStdout !== false,
           stderr: true,
           outputChecksums: true,
+          fileStates: true,
         },
+        expected: step.expected,
         native,
         wasm,
       });

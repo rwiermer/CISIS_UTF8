@@ -25,6 +25,7 @@ export interface CisisRunRequest {
   maxOutputBytes?: number;
   maxReturnedFileBytes?: number;
   returnFiles?: string[];
+  inspectFiles?: string[];
 }
 
 export interface CisisRunResult {
@@ -32,6 +33,7 @@ export interface CisisRunResult {
   stdout: string;
   stderr: string;
   files: Record<string, Uint8Array>;
+  fileStates: Record<string, boolean>;
   diagnostics: CisisDiagnostic[];
   durationMs: number;
 }

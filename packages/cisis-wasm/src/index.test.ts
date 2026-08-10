@@ -30,6 +30,7 @@ function success(stdout: string): CisisRunResult {
     stdout,
     stderr: "",
     files: {},
+    fileStates: {},
     diagnostics: [],
     durationMs: 1,
   };
@@ -166,5 +167,22 @@ test("rejects unsafe database names in IDE helpers", () => {
     () => runner.index({ database: "cds", index: "out=side", fst: "1 0 v1" }),
     /database name/,
   );
+  runner.dispose();
+});
+
+test("rejects inspected files outside the request root", async () => {
+  let workerCreated = false;
+  const runner = new CisisRunner({
+    workerFactory: () => {
+      workerCreated = true;
+      return new MockWorker() as unknown as Worker;
+    },
+  });
+
+  await assert.rejects(
+    runner.run({ program: "wxis", args: [], inspectFiles: ["../outside"] }),
+    /escapes/,
+  );
+  assert.equal(workerCreated, false);
   runner.dispose();
 });

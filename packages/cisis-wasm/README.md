@@ -49,8 +49,11 @@ runner.dispose();
 
 The low-level `run()` method remains available for MX or WXIS arguments not yet
 represented by a helper. Pass `returnFiles` when a low-level operation creates
-or changes files that the project must retain. IndexedDB storage is optional;
-snapshots are plain versioned objects and can also be exported by the host.
+or changes files that the project must retain. Pass `inspectFiles` for paths
+whose existence must be synchronized after a run; `CisisProject` removes a
+retained file when the result reports that it no longer exists. IndexedDB
+storage is optional; snapshots are plain versioned objects and can also be
+exported by the host.
 
 PFT, FST, search expressions, and IsisScript output are untrusted user input
 from the host application's perspective. Render generated HTML only after

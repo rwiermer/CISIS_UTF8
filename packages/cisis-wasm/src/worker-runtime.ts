@@ -3,6 +3,7 @@ import { normalizeVirtualPath, parentDirectories } from "./path.js";
 import type { CisisInputFile, CisisRunRequest, CisisRunResult } from "./types.js";
 
 interface EmscriptenFileSystem {
+  analyzePath(path: string): { exists: boolean };
   chdir(path: string): void;
   mkdir(path: string): void;
   mkdirTree(path: string): void;
@@ -116,6 +117,12 @@ export async function executeRequest(
     files[normalized] = data;
   }
 
+  const fileStates: Record<string, boolean> = {};
+  for (const path of request.inspectFiles ?? []) {
+    const normalized = normalizeVirtualPath(path);
+    fileStates[normalized] = module.FS.analyzePath(`${requestRoot}/${normalized}`).exists;
+  }
+
   const stdoutText = stdout.join("\n");
   const stderrText = stderr.join("\n");
   return {
@@ -123,6 +130,7 @@ export async function executeRequest(
     stdout: stdoutText,
     stderr: stderrText,
     files,
+    fileStates,
     diagnostics: collectDiagnostics(stdoutText, stderrText),
     durationMs: performance.now() - started,
   };

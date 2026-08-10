@@ -20,3 +20,13 @@ test("classifies native and WXIS errors without changing raw output", () => {
     ],
   );
 });
+
+test("classifies numeric PFT parser failures", () => {
+  const diagnostics = collectDiagnostics("", "*** fmt_error=15\n\nfatal: /");
+  assert.deepEqual(diagnostics[0], {
+    category: "format",
+    message: "PFT format error 15",
+    raw: "*** fmt_error=15",
+    severity: "error",
+  });
+});

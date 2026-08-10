@@ -91,6 +91,9 @@ export class CisisProject {
   }
 
   #absorb(result: CisisRunResult): void {
+    for (const [path, exists] of Object.entries(result.fileStates)) {
+      if (!exists) this.deleteFile(path);
+    }
     for (const [path, data] of Object.entries(result.files)) this.writeFile(path, data);
   }
 

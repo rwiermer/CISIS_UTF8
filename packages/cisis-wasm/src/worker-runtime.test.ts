@@ -12,6 +12,7 @@ test("executes in an isolated filesystem and returns requested files", async () 
     default: async ({ print }) => ({
       ENV: {},
       FS: {
+        analyzePath: (path) => ({ exists: files.has(path) }),
         chdir: (path) => { cwd = path; },
         mkdir: () => undefined,
         mkdirTree: () => undefined,
@@ -36,6 +37,7 @@ test("executes in an isolated filesystem and returns requested files", async () 
       args: ["seq=input.txt", "pft=v1/"],
       files: { "fixtures/input.txt": "hello" },
       returnFiles: ["result.txt"],
+      inspectFiles: ["result.txt", "missing.txt"],
     },
     loadModule,
   );
@@ -43,6 +45,7 @@ test("executes in an isolated filesystem and returns requested files", async () 
   assert.equal(result.exitCode, 0);
   assert.equal(result.stdout, "seq=input.txt pft=v1/");
   assert.equal(decoder.decode(result.files["result.txt"]), "done");
+  assert.deepEqual(result.fileStates, { "result.txt": true, "missing.txt": false });
   assert.equal(decoder.decode(files.get("/work/7/fixtures/input.txt")), "hello");
 });
 
@@ -50,6 +53,7 @@ test("limits captured runtime output", async () => {
   const loadModule: ModuleLoader = async () => ({
     default: async ({ print }) => ({
       FS: {
+        analyzePath: () => ({ exists: false }),
         chdir: () => undefined,
         mkdir: () => undefined,
         mkdirTree: () => undefined,

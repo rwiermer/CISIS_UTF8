@@ -23,6 +23,18 @@
         });
         const source = await fetch("/wxis_src/examples/hello.xis").then((response) => response.text());
         const wxis = await runner.runIsisScript({ source });
+        const deleteSource = await fetch("/wxis_src/examples/delfile.xis").then(
+          (response) => response.text(),
+        );
+        const deletionProject = runner.createProject({
+          "delfile.xis": deleteSource,
+          "delete-me.txt": "delete me",
+        });
+        const deleted = await deletionProject.run({
+          program: "wxis",
+          args: ["IsisScript=delfile.xis", "file=delete-me.txt"],
+          inspectFiles: ["delete-me.txt"],
+        });
         const isoResponse = await fetch("/wxis_src/examples/cds/cds.iso");
         if (!isoResponse.ok) throw new Error("Failed to load CDS ISO fixture");
         const project = runner.createProject({
@@ -59,6 +71,11 @@
           },
           projectFiles: restored.listFiles(),
           persistedProjects,
+          deleted: {
+            exitCode: deleted.exitCode,
+            fileState: deleted.fileStates["delete-me.txt"],
+            retained: deletionProject.hasFile("delete-me.txt"),
+          },
         };
         status.value = "Passed";
       } catch (error) {

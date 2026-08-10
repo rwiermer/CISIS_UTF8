@@ -21,4 +21,5 @@ test("runs MX/PFT and WXIS in the packaged browser worker", async ({ page }) => 
   expect(result.formatted.stdout).toContain("0001|Techniques for the measurement");
   expect(result.projectFiles).toEqual(["cds.iso", "cds.mst", "cds.xrf"]);
   expect(result.persistedProjects).toContain("cds");
+  expect(result.deleted).toEqual({ exitCode: 0, fileState: false, retained: false });
 });

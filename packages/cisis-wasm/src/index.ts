@@ -99,6 +99,7 @@ function validateRequest(
     }
   }
   for (const path of request.returnFiles ?? []) normalizeVirtualPath(path);
+  for (const path of request.inspectFiles ?? []) normalizeVirtualPath(path);
   for (const key of Object.keys(request.env ?? {})) {
     if (!environmentAllowlist.has(key)) {
       throw new Error(`CISIS environment variable is not allowlisted: ${key}`);

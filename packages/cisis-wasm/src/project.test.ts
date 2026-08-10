@@ -11,6 +11,7 @@ function result(files: Record<string, Uint8Array> = {}): CisisRunResult {
     stdout: "",
     stderr: "",
     files,
+    fileStates: {},
     diagnostics: [],
     durationMs: 1,
   };
@@ -55,4 +56,22 @@ test("project supplies files to runs and retains requested outputs", async () =>
 test("project rejects paths outside its virtual root", () => {
   const project = new CisisProject({} as CisisRunner);
   assert.throws(() => project.writeFile("../outside", "bad"), /escapes/);
+});
+
+test("project removes files reported missing after a run", async () => {
+  const runner = {
+    run: async () => ({
+      ...result(),
+      fileStates: { "temporary.txt": false },
+    }),
+  } as unknown as CisisRunner;
+  const project = new CisisProject(runner, { "temporary.txt": "delete me" });
+
+  await project.run({
+    program: "wxis",
+    args: ["IsisScript=delete.xis"],
+    inspectFiles: ["temporary.txt"],
+  });
+
+  assert.equal(project.hasFile("temporary.txt"), false);
 });
