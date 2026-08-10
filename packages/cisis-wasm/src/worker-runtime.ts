@@ -15,6 +15,25 @@ interface EmscriptenModule {
   ENV?: Record<string, string>;
   FS: EmscriptenFileSystem;
   callMain(args: string[]): number;
+  ccall?: (
+    name: string,
+    returnType: "number" | "string",
+    argumentTypes: readonly ("number" | "string")[],
+    arguments_: readonly (number | string)[],
+  ) => number | string;
+}
+
+interface DirectRecordReadRequest extends CisisRunRequest {
+  directRecordRead: {
+    database: string;
+    from: number;
+    count: number;
+    outputPath: string;
+  };
+}
+
+function isDirectRecordRead(request: CisisRunRequest): request is DirectRecordReadRequest {
+  return "directRecordRead" in request;
 }
 
 type EmscriptenFactory = (options: {
@@ -94,7 +113,24 @@ export async function executeRequest(
 
   let exitCode = 0;
   try {
-    exitCode = module.callMain(request.args);
+    if (isDirectRecordRead(request)) {
+      if (!module.ccall) throw new Error("CISIS MX module does not expose the record API");
+      const direct = request.directRecordRead;
+      const exported = module.ccall(
+        "cisis_wasm_export_records",
+        "number",
+        ["string", "number", "number", "string"],
+        [direct.database, direct.from, direct.count, direct.outputPath],
+      );
+      if (typeof exported !== "number") throw new Error("Invalid CISIS record API result");
+      if (exported < 0) {
+        exitCode = 1;
+        const message = module.ccall("cisis_wasm_last_error", "string", [], []);
+        stderr.push(typeof message === "string" && message ? message : "CISIS record export failed");
+      }
+    } else {
+      exitCode = module.callMain(request.args);
+    }
   } catch (error) {
     const status = exitStatus(error);
     if (status === undefined) {

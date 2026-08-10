@@ -1,4 +1,4 @@
-import type { CisisRecordData, CisisRecordField } from "./types.js";
+import type { CisisRecord, CisisRecordData, CisisRecordField } from "./types.js";
 
 const HEADER_BYTES = 24;
 const DIRECTORY_ENTRY_BYTES = 12;
@@ -140,5 +140,54 @@ export function decodeIso2709Records(input: ArrayBuffer | Uint8Array): CisisReco
     recordOffset = recordEnd;
   }
 
+  return records;
+}
+
+export function decodeCisisRecordExport(input: ArrayBuffer | Uint8Array): CisisRecord[] {
+  const data = input instanceof Uint8Array ? input : new Uint8Array(input);
+  let offset = 0;
+  const requireBytes = (length: number): void => {
+    if (length < 0 || offset + length > data.byteLength) {
+      throw new Error("Truncated CISIS record export");
+    }
+  };
+  const readU8 = (): number => {
+    requireBytes(1);
+    return data[offset++]!;
+  };
+  const readU16 = (): number => readU8() | (readU8() << 8);
+  const readU32 = (): number => (
+    readU8() |
+    (readU8() << 8) |
+    (readU8() << 16) |
+    (readU8() << 24)
+  ) >>> 0;
+
+  requireBytes(8);
+  if (String.fromCharCode(...data.subarray(0, 4)) !== "CWR1") {
+    throw new Error("Invalid CISIS record export header");
+  }
+  offset = 4;
+  const recordCount = readU32();
+  const records: CisisRecord[] = [];
+  for (let recordIndex = 0; recordIndex < recordCount; recordIndex += 1) {
+    const mfn = readU32();
+    const status = readU8();
+    const fieldCount = readU32();
+    if (mfn < 1) throw new Error("Invalid MFN in CISIS record export");
+    if (status !== 0 && status !== 1) {
+      throw new Error(`Invalid status in CISIS record export at MFN ${mfn}`);
+    }
+    const fields: CisisRecordField[] = [];
+    for (let fieldIndex = 0; fieldIndex < fieldCount; fieldIndex += 1) {
+      const tag = readU16();
+      const length = readU32();
+      requireBytes(length);
+      fields.push({ tag, value: data.slice(offset, offset + length) });
+      offset += length;
+    }
+    records.push({ mfn, status: status === 0 ? "active" : "deleted", fields });
+  }
+  if (offset !== data.byteLength) throw new Error("Trailing data in CISIS record export");
   return records;
 }

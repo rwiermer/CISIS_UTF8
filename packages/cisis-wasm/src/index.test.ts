@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { CisisRunner } from "./index.js";
 import type { WorkerRunRequest, WorkerRunResponse } from "./protocol.js";
-import type { CisisRunResult } from "./types.js";
+import type { CisisRunRequest, CisisRunResult } from "./types.js";
 
 class MockWorker {
   onerror: ((event: ErrorEvent) => unknown) | null = null;
@@ -36,11 +36,30 @@ function success(stdout: string): CisisRunResult {
   };
 }
 
-const exportedRecord = new TextEncoder().encode(
-  "00135nz   2200085n  4500" +
-  "024000600000070000400006070000600010999000900016999002400025\x1e" +
-  "Title\x1eAda\x1eGrace\x1eoriginal\x1e^m000005^cCISISWASMREAD\x1e\x1d",
-);
+function recordExportFixture(): Uint8Array {
+  const output: number[] = [0x43, 0x57, 0x52, 0x31];
+  const u16 = (value: number): void => { output.push(value & 0xff, (value >>> 8) & 0xff); };
+  const u32 = (value: number): void => {
+    output.push(value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, value >>> 24);
+  };
+  const field = (tag: number, value: string): void => {
+    const data = new TextEncoder().encode(value);
+    u16(tag);
+    u32(data.byteLength);
+    output.push(...data);
+  };
+  u32(1);
+  u32(5);
+  output.push(0);
+  u32(4);
+  field(24, "Title");
+  field(70, "Ada");
+  field(70, "Grace");
+  field(999, "original");
+  return Uint8Array.from(output);
+}
+
+const exportedRecord = recordExportFixture();
 
 test("serializes requests through one worker", async () => {
   const worker = new MockWorker();
@@ -328,26 +347,29 @@ test("does not expose a partially finalized structured write", async () => {
   runner.dispose();
 });
 
-test("reads active structured records and removes only export metadata", async () => {
+test("reads structured records through the direct MX record API", async () => {
   const worker = new MockWorker();
   const runner = new CisisRunner({ workerFactory: () => worker as unknown as Worker });
   const pending = runner.readRecords({ database: "catalog", from: 5, count: 2 });
 
-  assert.deepEqual(worker.messages[0]?.request.args, [
-    "catalog",
-    "proc='a999|^m'mfn'^cCISISWASMREAD|'",
-    "outiso=marc=__cisis-read-records.iso",
-    "from=5",
-    "count=2",
-    "pft=if 1=0 then mfn fi",
-    "now",
-  ]);
+  assert.deepEqual(worker.messages[0]?.request.args, []);
+  assert.deepEqual(
+    (worker.messages[0]?.request as CisisRunRequest & {
+      directRecordRead: unknown;
+    }).directRecordRead,
+    {
+      database: "catalog",
+      from: 5,
+      count: 2,
+      outputPath: "__cisis-records.bin",
+    },
+  );
   worker.respond({
     type: "result",
     id: worker.messages[0]!.id,
     result: {
       ...success(""),
-      files: { "__cisis-read-records.iso": exportedRecord },
+      files: { "__cisis-records.bin": exportedRecord },
     },
   });
 

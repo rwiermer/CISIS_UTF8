@@ -93,6 +93,13 @@ jobs:
             --wasm-wxis "$PWD/build/wasm/cisis-wxis.mjs" \
             --root "$PWD" \
             --report "$PWD/build/compatibility-report.json"
+      - name: Measure WebAssembly performance and artifact budgets
+        run: |
+          node tests/wasm/performance.mjs \
+            "$PWD/build/wasm/cisis-mx.mjs" \
+            "$PWD/build/wasm/cisis-wxis.mjs" \
+            "$PWD" \
+            "$PWD/build/performance-report.json"
       - name: Install Chromium
         run: npx --prefix packages/cisis-wasm playwright install --with-deps chromium
       - name: Test browser worker
@@ -104,5 +111,6 @@ jobs:
             build/wasm/*.mjs
             build/wasm/*.wasm
             build/compatibility-report.json
+            build/performance-report.json
             packages/cisis-wasm/dist/
           if-no-files-found: error

@@ -24,7 +24,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | PFT formatting helper | Verified | `format()` runs a PFT against caller-supplied ISIS1660 database files. |
 | Structured record formatting | Verified in Chromium/native-Wasm parity | `formatRecord()` preserves ordered and repeated fields, UTF-8 values, and PFT subfield syntax while importing one active record as MFN 1. |
 | Structured database writes | Verified in Chromium; Wasm differential case added | `writeRecords()` creates or upserts up to 1,000 complete records with explicit MFNs and active/deleted status, then invalidates stale index companions. MFNs are limited to 1,000,000 and one field tag must be unused by the batch for transient import metadata. |
-| Structured database reads | Verified in Chromium; ISO export covered by differential case | `readRecords()` returns active records with explicit MFNs, ordered/repeated tags, and byte-valued fields. Its transient MFN marker is removed without discarding an original tag 999. Deleted record contents are not exposed by the current MX ISO export path. |
+| Structured database reads | Verified in Node and Chromium | `readRecords()` uses a versioned direct C export to return active and logically deleted records with explicit MFNs, ordered/repeated tags, and byte-valued fields. Reads default to and are limited to 1,000 records per call. |
 | FST indexing helper | Verified | `index()` performs full inversion and returns `.cnt`, `.ifp`, `.l01`, `.l02`, `.n01`, and `.n02`. |
 | Search helper | Verified | `search()` executes an MX Boolean expression against supplied database and index files. |
 | IsisScript helper | Verified subset | `runIsisScript()` maps source, parameters, and files to request-local WXIS arguments. |
@@ -32,8 +32,8 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | Project snapshots | Verified | Snapshots use schema version 1 and defensive `Uint8Array` copies. |
 | IndexedDB persistence | Verified in Chromium | `CisisProjectStore` supports save, load, list, delete, and close; v1 databases migrate to v2 with binary data intact, and blocked/corrupt/quota failures have typed codes. |
 | Portable project archive | Verified in Chromium | Deterministic binary archives preserve arbitrary file bytes without base64 and reject corrupt, oversized, duplicate, or escaping entries. |
-| Direct C API | Not implemented | IDE helpers currently translate to validated MX/WXIS command arguments. |
-| Serializable record model | Partial | Ordered fields accept text or byte values; writes preserve repeated fields, explicit MFNs, and logical deletion, active records can be read back, and project revisions prevent silent lost updates. Deleted-record readback is not yet represented. |
+| Direct C API | Verified narrow export | One MX-only function writes a versioned record stream to MEMFS. It exposes no internal structs or allocator ownership and exists specifically because ISO export omits deleted records. |
+| Serializable record model | Verified subset | Ordered fields accept text or byte values; writes and reads preserve repeated fields, explicit MFNs, and logical deletion, and project revisions prevent silent lost updates. Reads/writes are bounded to 1,000 records per call. |
 
 ## Language and workflow coverage
 
@@ -42,7 +42,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | PFT | Supported subset | literals, MFN, field/subfield selection, missing/repeated fields, uppercase mode, `nocc`, `size`, `left`, combining/non-Latin UTF-8, and one fatal syntax error | other modes, broader functions/includes, and more errors need focused cases |
 | IsisScript flow | Supported subset | display, fields, loops, CGI parameters, and nested includes | broader flow/error examples and precise source diagnostics |
 | IsisScript database work | Supported subset | ISO import/export, update writes, database reads, file deletion, Boolean search, and malformed-search reporting | record deletion, sort, XML conversion, and temporary-file workflows |
-| Database format | Supported subset | ISO2709 import/export, current ISIS1660 MST/XRF creation/reads, active structured readback, sparse MFNs, complete-record upserts, and logical deletion | deleted-record readback, other historical layouts, large databases, and endian portability |
+| Database format | Supported subset | ISO2709 import/export, current ISIS1660 MST/XRF creation/reads, active/deleted structured readback, sparse MFNs, complete-record upserts, and logical deletion | other historical layouts, large databases, and endian portability |
 | FST and inversion | Supported subset | bundled CDS techniques 0, 2, and 4; full inversion through the in-process CISIS sorter | other techniques, stopword/table variants, and incremental inversion |
 | Search | Supported subset | MX and WXIS Boolean retrieval, a compound `AND`, and one WXIS malformed-expression path | broader syntax-error matrix, prefixes, sets, logs, and larger result sets |
 | UTF-8 | Supported subset | combining characters plus asserted Polish, Japanese, and Greek output | table-driven case conversion and deliberately invalid byte sequences |
@@ -75,6 +75,28 @@ the callback transport preserve different counts. Generated ISO, MST/XRF, and
 all six inverted-file companions match the native 32-bit build byte-for-byte in
 covered scenarios. CI publishes the JSON report with the Wasm artifact.
 
+## Initial performance and artifact budgets
+
+The CI harness publishes `performance-report.json` and enforces conservative
+artifact ceilings. An Apple Silicon Node 24 run with Emscripten 6.0.4 measured
+the 74,574-byte CDS ISO fixture as follows; timings are indicative, not browser
+release budgets:
+
+| Metric | Current measurement | Budget |
+| --- | ---: | ---: |
+| MX JavaScript | 86,782 bytes | 128 KiB |
+| MX Wasm | 436,050 bytes | 512 KiB |
+| WXIS JavaScript | 86,259 bytes | 128 KiB |
+| WXIS Wasm | 499,759 bytes | 640 KiB |
+| CDS import | 19.8 ms | Measurement only |
+| Format 100 records | 6.4 ms median over 5 runs | Measurement only |
+| Direct read of 100 records | 6.6 ms median over 5 runs | Measurement only |
+
+The MX record ABI added 11,998 Wasm bytes and 1,483 JavaScript bytes versus the
+previous local artifact, a 2.8% Wasm increase. Browser cold start, peak memory,
+upload time, and large-database measurements remain before release budgets can
+be set for latency and memory.
+
 ## Browser execution and limits
 
 | Concern | Current behavior |
@@ -88,6 +110,7 @@ covered scenarios. CI publishes the JSON report with the Wasm artifact.
 | Default input limit | 64 MiB per request. |
 | Default captured output limit | 4 MiB per request. |
 | Default returned-file limit | 64 MiB per request. |
+| Structured read limit | 1,000 active or logically deleted records per call; use `from` for paging. |
 | Wasm memory | 64 MiB initial memory, growth enabled, 256 MiB maximum. |
 | HTML | PFT/WXIS HTML is returned as untrusted text; sanitization belongs to the IDE. |
 
@@ -115,8 +138,7 @@ MST/XRF checksums, and subsequent selected PFT output remain compared.
 - Cover database record deletion, sort, and incremental inversion.
 - Cover IsisScript XML, temporary files, and unsupported-operation errors.
 - Add Firefox and WebKit Playwright jobs.
-- Measure cold start, repeated-run latency, memory, upload time, and artifact size.
+- Measure browser cold start, memory, upload time, and large-database behavior.
 - Define IndexedDB quota budgets/recovery and multi-tab behavior.
-- Add deleted-record readback.
 - Add sanitizer builds, fuzz smoke tests, release provenance, checksums, SBOM,
   and LGPL source/relinking deliverables.

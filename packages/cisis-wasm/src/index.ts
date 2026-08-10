@@ -1,6 +1,10 @@
 import { normalizeVirtualPath } from "./path.js";
 import { CisisProject } from "./project.js";
-import { decodeIso2709Records, encodeIso2709Record } from "./record.js";
+import {
+  decodeCisisRecordExport,
+  decodeIso2709Records,
+  encodeIso2709Record,
+} from "./record.js";
 import type { WorkerRunRequest, WorkerRunResponse } from "./protocol.js";
 import type {
   CisisInputFile,
@@ -59,7 +63,11 @@ export {
   type CisisProjectStoreErrorCode,
 } from "./persistence.js";
 export { decodeProjectArchive, encodeProjectArchive } from "./archive.js";
-export { decodeIso2709Records, encodeIso2709Record } from "./record.js";
+export {
+  decodeCisisRecordExport,
+  decodeIso2709Records,
+  encodeIso2709Record,
+} from "./record.js";
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const DEFAULT_MAX_INPUT_BYTES = 64 * 1024 * 1024;
@@ -74,10 +82,9 @@ const DEFAULT_ENVIRONMENT_ALLOWLIST = [
 ] as const;
 const MAX_RECORD_MFN = 1_000_000;
 const MAX_RECORDS_PER_WRITE = 1_000;
+const MAX_RECORDS_PER_READ = 1_000;
 const INDEX_EXTENSIONS = ["cnt", "ifp", "l01", "l02", "n01", "n02"] as const;
 const SILENT_PFT = "pft=if 1=0 then mfn fi";
-const READ_METADATA_TAG = 999;
-const READ_METADATA_MARKER = "CISISWASMREAD";
 
 interface QueuedRun {
   request: CisisRunRequest;
@@ -409,22 +416,34 @@ export class CisisRunner {
     const database = databaseName(request.database);
     const from = positiveInteger("record read from", request.from);
     const count = positiveInteger("record read count", request.count);
-    const isoPath = "__cisis-read-records.iso";
-    const run = await this.run({
+    if (from !== undefined && from > MAX_RECORD_MFN) {
+      throw new Error(`CISIS record read from must not exceed ${MAX_RECORD_MFN}`);
+    }
+    if (count !== undefined && count > MAX_RECORDS_PER_READ) {
+      throw new Error(`A record read is limited to ${MAX_RECORDS_PER_READ} records`);
+    }
+    const outputPath = "__cisis-records.bin";
+    const directRequest = {
       program: "mx",
-      args: [
+      args: [],
+      directRecordRead: {
         database,
-        `proc='a${READ_METADATA_TAG}|^m'mfn'^c${READ_METADATA_MARKER}|'`,
-        `outiso=marc=${isoPath}`,
-        ...(from === undefined ? [] : [`from=${from}`]),
-        ...(count === undefined ? [] : [`count=${count}`]),
-        SILENT_PFT,
-        "now",
-      ],
+        from: from ?? 1,
+        count: count ?? MAX_RECORDS_PER_READ,
+        outputPath,
+      },
       ...(request.files === undefined ? {} : { files: request.files }),
-      returnFiles: [isoPath],
+      returnFiles: [outputPath],
       ...optionalTimeout(request.timeoutMs),
-    });
+    } satisfies CisisRunRequest & {
+      directRecordRead: {
+        database: string;
+        from: number;
+        count: number;
+        outputPath: string;
+      };
+    };
+    const run = await this.run(directRequest);
 
     const baseResult = {
       exitCode: run.exitCode,
@@ -435,30 +454,10 @@ export class CisisRunner {
     };
     if (run.exitCode !== 0) return { ...baseResult, records: [] };
 
-    const decoded = decodeIso2709Records(run.files[isoPath] ?? new Uint8Array());
-    const decoder = new TextDecoder();
-    const records = decoded.map((record): CisisRecord => {
-      let metadataIndex = -1;
-      let mfn = 0;
-      for (let index = record.fields.length - 1; index >= 0; index -= 1) {
-        const field = record.fields[index]!;
-        if (field.tag !== READ_METADATA_TAG || typeof field.value === "string") continue;
-        const match = /^\^m(\d+)\^cCISISWASMREAD$/.exec(decoder.decode(field.value));
-        if (!match) continue;
-        metadataIndex = index;
-        mfn = Number(match[1]);
-        break;
-      }
-      if (metadataIndex < 0 || !Number.isSafeInteger(mfn) || mfn < 1) {
-        throw new Error("CISIS record export is missing valid MFN metadata");
-      }
-      return {
-        mfn,
-        status: "active",
-        fields: record.fields.filter((_, index) => index !== metadataIndex),
-      };
-    });
-    return { ...baseResult, records };
+    return {
+      ...baseResult,
+      records: decodeCisisRecordExport(run.files[outputPath] ?? new Uint8Array()),
+    };
   }
 
   index(request: IndexRequest): Promise<CisisRunResult> {

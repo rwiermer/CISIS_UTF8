@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { decodeIso2709Records, encodeIso2709Record } from "./record.js";
+import {
+  decodeCisisRecordExport,
+  decodeIso2709Records,
+  encodeIso2709Record,
+} from "./record.js";
 
 const exportedIso = new TextEncoder().encode(
   "00135nz   2200085n  4500" +
@@ -60,4 +64,44 @@ test("rejects corrupt ISO2709 exports", () => {
   corrupt[corrupt.length - 1] = 0;
   assert.throws(() => decodeIso2709Records(corrupt), /record terminator/);
   assert.throws(() => decodeIso2709Records(exportedIso.slice(0, 20)), /Truncated/);
+});
+
+test("decodes active and deleted records from the direct C export", () => {
+  const output: number[] = [0x43, 0x57, 0x52, 0x31];
+  const u16 = (value: number): void => { output.push(value & 0xff, value >>> 8); };
+  const u32 = (value: number): void => {
+    output.push(value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, value >>> 24);
+  };
+  u32(2);
+  u32(5);
+  output.push(0);
+  u32(1);
+  u16(24);
+  u32(2);
+  output.push(0xc3, 0xa9);
+  u32(9);
+  output.push(1);
+  u32(1);
+  u16(70);
+  u32(2);
+  output.push(0x00, 0xff);
+
+  const records = decodeCisisRecordExport(Uint8Array.from(output));
+  assert.equal(records[0]?.mfn, 5);
+  assert.equal(records[0]?.status, "active");
+  assert.deepEqual(records[0]?.fields[0]?.value, new Uint8Array([0xc3, 0xa9]));
+  assert.equal(records[1]?.mfn, 9);
+  assert.equal(records[1]?.status, "deleted");
+  assert.deepEqual(records[1]?.fields[0]?.value, new Uint8Array([0x00, 0xff]));
+});
+
+test("rejects corrupt direct C record exports", () => {
+  assert.throws(
+    () => decodeCisisRecordExport(new TextEncoder().encode("invalid")),
+    /Truncated|header/,
+  );
+  assert.throws(
+    () => decodeCisisRecordExport(new Uint8Array([0x43, 0x57, 0x52, 0x31, 1, 0, 0, 0])),
+    /Truncated/,
+  );
 });

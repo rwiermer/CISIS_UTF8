@@ -53,6 +53,11 @@ test("runs MX/PFT and WXIS in the packaged browser worker", async ({ page }) => 
         status: "active",
         fields: [[24, "Nine updated"]],
       },
+      {
+        mfn: 12,
+        status: "deleted",
+        fields: [[24, "Twelve"]],
+      },
     ],
     revision: 2,
     conflict: {

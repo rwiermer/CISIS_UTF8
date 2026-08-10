@@ -57,7 +57,7 @@ but it is not yet a hardened or published release.
 | M2 browser runner | Partial | Strict-TypeScript Worker runner, isolation, validation, limits, cancellation by Worker replacement, returned files, and basic diagnostics are implemented. Chromium is green; Firefox is not yet in CI. |
 | M3 differential suite | Partial | Twelve data-driven scenarios cover exact combining and non-Latin UTF-8, PFT subfields/modes/functions/missing/repeated fields, structured record formatting and database writes, logical deletion, PFT and search errors, WXIS flow/includes, ISO import/export, database reads/updates, file deletion, full inversion, and simple/compound search. More mutation and parser cases remain. |
 | M4 WXIS IsisScript | Partial | Hello/display, fields, loops, CGI parameters, includes, database import/export/update, file deletion, and search match native behavior in covered cases. Other host operations, temporary files, and XML remain to be classified and tested. |
-| M5 IDE APIs and persistence | Partial | CLI-backed helpers, active structured readback, MFN/status-preserving writes, index invalidation, serialized project mutations with optimistic revisions, snapshots, IndexedDB migration/typed failures, and deterministic archives are implemented. Deleted-record readback, quota recovery, multi-tab behavior, and performance budgets remain; a direct C ABI is optional pending measurements. |
+| M5 IDE APIs and persistence | Partial | CLI-backed helpers, active/deleted structured readback through one narrow C export, MFN/status-preserving writes, optimistic project revisions, snapshots, IndexedDB migration/typed failures, deterministic archives, performance reporting, and artifact budgets are implemented. Quota recovery, multi-tab behavior, and broader browser performance budgets remain. |
 | M6 hardening and release | Not started | Cross-browser coverage, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
 
 The current green reference is implementation commit
@@ -71,10 +71,9 @@ on 2026-08-10.
 1. Close the remaining M3/M4 correctness gaps with additional PFT/search parser
    failures, database record deletion and sort, incremental inversion, WXIS
    temporary files/XML, and explicit unsupported-host-operation tests.
-2. Complete M5 with deleted-record readback, IndexedDB quota budgets/recovery
-   and multi-tab behavior, and measured browser performance budgets. Add a
-   direct C ABI where deleted records, measurements, or diagnostics justify
-   moving beyond the parity-tested CLI boundary.
+2. Complete M5 with IndexedDB quota recovery and multi-tab behavior, then extend
+   measurements to browser cold start, memory, and large databases. Keep the C
+   ABI limited to record readback unless further measurements justify expansion.
 3. Start M6 with Firefox and WebKit CI, sanitizer/fuzz jobs, artifact budgets,
    reproducible release metadata, SBOM generation, and LGPL deliverables.
 
@@ -171,10 +170,13 @@ store.save(name, snapshot): Promise<void>
 store.load(name): Promise<CisisProjectSnapshot | undefined>
 ```
 
-The helpers currently translate to validated MX/WXIS arguments rather than a
-new C ABI. Diagnostics retain raw output and provide a best-effort category,
-message, and severity. Source, line, and column are not implemented because the
-native parsers do not expose them reliably.
+Formatting, writing, indexing, search, and IsisScript helpers translate to
+validated MX/WXIS arguments. Structured reads use one narrow C function because
+MX ISO export omits deleted records; its versioned stream copies MFN, status,
+tags, and bytes without exposing C structs or allocator ownership. Diagnostics
+retain raw output and provide a best-effort category, message, and severity.
+Source, line, and column are not implemented because the native parsers do not
+expose them reliably.
 
 ### Current browser capability policy
 
@@ -304,25 +306,22 @@ native WXIS; unsupported host operations fail explicitly and safely.
 ### M5: direct IDE APIs and persistence
 
 **Status: partial.** Database-oriented TypeScript helpers, active single-record
-formatting, active structured record readback, MFN/status-preserving database
-writes, automatic stale-index invalidation, serialized mutations, optimistic
-project revisions, host-managed files, versioned snapshots, IndexedDB v1-to-v2
-migration, typed storage failures, and deterministic binary archives are
-implemented. Deleted-record readback, quota recovery, multi-tab behavior, and
-measurements remain. A direct C ABI is specifically justified if needed to read
-deleted records.
+formatting, active/deleted structured readback, MFN/status-preserving database
+writes, automatic stale-index invalidation, optimistic project revisions,
+versioned snapshots, IndexedDB v1-to-v2 migration, typed storage failures,
+deterministic archives, and initial performance/artifact budgets are implemented.
+Quota recovery, multi-tab behavior, browser memory/cold-start measurements, and
+large-database measurements remain.
 
-- Measure the CLI-backed `format`, `search`, and `index` helpers, then add a
-  narrow C ABI only where the results justify it; do not expose internal C
-  structs or allocator ownership to JavaScript.
-- Add deleted-record readback. Active readback already preserves repeated fields,
-  subfields, byte content, and MFNs; project writes already have optimistic
-  session-local revision checks.
+- Keep the direct ABI limited to its versioned record-read stream unless measured
+  CLI performance or diagnostics justify another function; do not expose
+  internal C structs or allocator ownership to JavaScript.
+- Preserve active and deleted record readback coverage across binary fields,
+  repeated fields, subfields, and sparse MFNs.
 - Add optional project snapshots and IndexedDB persistence in the TypeScript
   layer, with import/export of all database companion files.
-- Measure cold start, repeat-run latency, peak memory, fixture upload time, and
-  artifact sizes. Establish budgets from measurements and representative IDE
-  projects.
+- Extend the initial Node timing and artifact report with browser cold start,
+  peak memory, fixture upload time, and representative large IDE projects.
 
 Exit criterion: the IDE can edit a PFT or IsisScript, execute it against an
 uploaded or sample database, display diagnostics, and export all changed files.
@@ -376,7 +375,7 @@ The detailed evidence and exclusions are maintained in
 | PFT formatting | Parity for covered combining/non-Latin UTF-8, subfields, modes, functions, missing/repeated fields, and one syntax error | More functions/errors and undocumented extensions remain test-driven |
 | IsisScript | Flow, includes, DB import/read/search/update | XML, temporary-file, error, shell, and socket cases remain |
 | FST/indexing | Full inversion and search for bundled CDS FST | Other techniques, incremental inversion, and large databases |
-| Database formats | ISIS1660 MST/XRF and companion index files; active structured readback and MFN/status-preserving writes | Deleted-record readback and other layout variants after fixture coverage |
+| Database formats | ISIS1660 MST/XRF and companion index files; active/deleted structured readback and MFN/status-preserving writes | Other layout variants after fixture coverage |
 | Persistence | Host-managed files, versioned snapshots, IndexedDB schema migration and typed failures, deterministic import/export archive | Quota budgets/recovery and multi-tab coordination |
 | Concurrency | One serialized runtime per worker | Worker pool only after memory measurement |
 | Networking | JavaScript host fetches files before execution | Native socket compatibility excluded |

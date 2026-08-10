@@ -90,12 +90,12 @@ it does not preserve caller-supplied MFNs or deleted status. `writeRecords()`
 provides that database boundary for batches of up to 1,000 records and MFNs up
 to 1,000,000. Writes preserve explicit MFNs and logical deletion status, replace
 complete records, and invalidate retained inverted-file companions so the IDE
-cannot search a stale index. `readRecords()` returns active records with exact
-byte-valued fields and preserves their order and repetitions. CISIS ISO export
-does not expose logically deleted record contents, so deleted-record readback is
-not yet part of the structured API. Project mutations are serialized and update
-the session-local `project.revision`. Supplying `expectedRevision` to
-`writeRecords()` rejects stale IDE edits with `CisisProjectConflictError`.
+cannot search a stale index. `readRecords()` returns active and logically deleted
+records with exact byte-valued fields and preserves their order and repetitions.
+Reads default to at most 1,000 records and can be paged with `from` and `count`.
+Project mutations are serialized and update the session-local `project.revision`.
+Supplying `expectedRevision` to `writeRecords()` rejects stale IDE edits with
+`CisisProjectConflictError`.
 
 The low-level `run()` method remains available for MX or WXIS arguments not yet
 represented by a helper. Pass `returnFiles` when a low-level operation creates

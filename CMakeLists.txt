@@ -56,6 +56,7 @@ endif()
 
 set(CISIS_MX_SOURCES
   mx.c
+  cisis_wasm.c
   cisisx.c
   cicgi.c
   ${CISIS_COMMON_SOURCES})
@@ -121,6 +122,14 @@ function(cisis_configure_target target is_wxis)
 
   if(EMSCRIPTEN)
     target_compile_definitions(${target} PRIVATE MYSFUN=1)
+    if(is_wxis)
+      set(CISIS_EXPORTED_FUNCTIONS "['_main']")
+      set(CISIS_EXPORTED_RUNTIME_METHODS "FS,ENV,callMain")
+    else()
+      set(CISIS_EXPORTED_FUNCTIONS
+        "['_main','_cisis_wasm_export_records','_cisis_wasm_last_error']")
+      set(CISIS_EXPORTED_RUNTIME_METHODS "FS,ENV,callMain,ccall")
+    endif()
     target_link_options(${target} PRIVATE
       -sMODULARIZE=1
       -sEXPORT_ES6=1
@@ -131,7 +140,8 @@ function(cisis_configure_target target is_wxis)
       -sMAXIMUM_MEMORY=268435456
       -sEXIT_RUNTIME=1
       -sINVOKE_RUN=0
-      -sEXPORTED_RUNTIME_METHODS=FS,ENV,callMain)
+      "-sEXPORTED_FUNCTIONS=${CISIS_EXPORTED_FUNCTIONS}"
+      "-sEXPORTED_RUNTIME_METHODS=${CISIS_EXPORTED_RUNTIME_METHODS}")
     set_target_properties(${target} PROPERTIES SUFFIX ".mjs")
   endif()
 endfunction()

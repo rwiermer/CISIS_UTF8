@@ -102,3 +102,50 @@ test("reports a missing requested output without leaking filesystem errors", asy
     /did not create requested file: missing.bin/,
   );
 });
+
+test("invokes the direct record export ABI", async () => {
+  const files = new Map<string, Uint8Array>();
+  let cwd = "/";
+  let directArguments: readonly (number | string)[] | undefined;
+  const loadModule: ModuleLoader = async () => ({
+    default: async () => ({
+      FS: {
+        analyzePath: (path) => ({ exists: files.has(path) }),
+        chdir: (path) => { cwd = path; },
+        mkdir: () => undefined,
+        mkdirTree: () => undefined,
+        readFile: (path) => files.get(path)!,
+        writeFile: (path, data) => {
+          files.set(path, typeof data === "string" ? new TextEncoder().encode(data) : data);
+        },
+      },
+      callMain: () => { throw new Error("callMain must not run for direct record reads"); },
+      ccall: (name, returnType, _argumentTypes, arguments_) => {
+        if (name === "cisis_wasm_last_error" && returnType === "string") return "";
+        directArguments = arguments_;
+        files.set(`${cwd}/${String(arguments_[3])}`, new Uint8Array([
+          0x43, 0x57, 0x52, 0x31, 0, 0, 0, 0,
+        ]));
+        return 0;
+      },
+    }),
+  });
+  const request = {
+    program: "mx" as const,
+    args: [],
+    returnFiles: ["records.bin"],
+    directRecordRead: {
+      database: "catalog",
+      from: 5,
+      count: 10,
+      outputPath: "records.bin",
+    },
+  };
+
+  const result = await executeRequest(10, "mock-module.mjs", request, loadModule);
+  assert.equal(result.exitCode, 0);
+  assert.deepEqual(directArguments, ["catalog", 5, 10, "records.bin"]);
+  assert.deepEqual(result.files["records.bin"], new Uint8Array([
+    0x43, 0x57, 0x52, 0x31, 0, 0, 0, 0,
+  ]));
+});
