@@ -34,9 +34,9 @@ inferred from the misleadingly named native `SIXTY_FOUR` build flag.
   Wasm targets. There is not yet a reusable CISIS library target.
 - MX and WXIS are process-oriented entry points. They use global state, standard
   input/output, process environment variables, `exit`, and synchronous files.
-- The formatter is embedded in the wider CISIS runtime rather than exposed as a
-  small stable API. PFT support should initially reuse the proven engine through
-  MX, then gain a narrow C wrapper after parity tests exist.
+- The formatter is embedded in the wider CISIS runtime and remains behind the
+  parity-tested MX boundary. Current measurements do not justify a formatter C
+  wrapper; the only direct ABI is the record export needed for deleted records.
 - The repository contains roughly one hundred IsisScript examples, a CDS
   ISO/PFT/FST dataset, compiled databases, and UTF-8 fixtures. Twelve workflows
   are now differential scenarios; most examples have not yet been promoted to
@@ -58,18 +58,18 @@ but it is not yet a hardened or published release.
 | M3 differential suite | Partial | Twelve data-driven scenarios cover exact combining and non-Latin UTF-8, PFT subfields/modes/functions/missing/repeated fields, structured record formatting and database writes, logical deletion, PFT and search errors, WXIS flow/includes, ISO import/export, database reads/updates, file deletion, full inversion, and simple/compound search. More mutation and parser cases remain. |
 | M4 WXIS IsisScript | Partial | Hello/display, fields, loops, CGI parameters, includes, database import/export/update, file deletion, and search match native behavior in covered cases. Other host operations, temporary files, and XML remain to be classified and tested. |
 | M5 IDE APIs and persistence | Partial | CLI-backed helpers, active/deleted structured readback through one narrow C export, MFN/status-preserving writes, optimistic project revisions, snapshots, IndexedDB migration/typed failures, deterministic archives, performance reporting, and artifact budgets are implemented. Quota recovery, multi-tab behavior, and broader browser performance budgets remain. |
-| M6 hardening and release | Not started | Cross-browser coverage, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
+| M6 hardening and release | Partial | CI enforces Wasm artifact budgets and publishes compatibility/performance reports. Cross-browser coverage, sanitizer/fuzz jobs, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
 
 The current green reference is implementation commit
-[`0e774e6`](https://github.com/rwiermer/CISIS_UTF8/commit/0e774e62aec5af152da3307a23d72cb68eb19bc8),
+[`7907906`](https://github.com/rwiermer/CISIS_UTF8/commit/790790694bb04f7e93b75c76c8ebfe219798ec8d),
 validated by GitHub Actions run
-[`31410507361`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31410507361)
+[`31414950441`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31414950441)
 on 2026-08-10.
 
 ### Next priorities
 
 1. Close the remaining M3/M4 correctness gaps with additional PFT/search parser
-   failures, database record deletion and sort, incremental inversion, WXIS
+   failures, invalid-byte cases, database sort and incremental inversion, WXIS
    temporary files/XML, and explicit unsupported-host-operation tests.
 2. Complete M5 with IndexedDB quota recovery and multi-tab behavior, then extend
    measurements to browser cold start, memory, and large databases. Keep the C
@@ -318,8 +318,8 @@ large-database measurements remain.
   internal C structs or allocator ownership to JavaScript.
 - Preserve active and deleted record readback coverage across binary fields,
   repeated fields, subfields, and sparse MFNs.
-- Add optional project snapshots and IndexedDB persistence in the TypeScript
-  layer, with import/export of all database companion files.
+- Harden the implemented IndexedDB layer with quota recovery, corruption UX,
+  and multi-tab coordination while retaining explicit companion-file exports.
 - Extend the initial Node timing and artifact report with browser cold start,
   peak memory, fixture upload time, and representative large IDE projects.
 
@@ -328,7 +328,8 @@ uploaded or sample database, display diagnostics, and export all changed files.
 
 ### M6: hardening and release
 
-**Status: not started.**
+**Status: partial.** Artifact ceilings and compatibility/performance reports run
+in CI. Cross-browser, security, provenance, and release work remains.
 
 - Test current Chromium, Firefox, and WebKit in Playwright at desktop and mobile
   viewport sizes; execution remains in a worker on all platforms.
@@ -359,11 +360,12 @@ tests/browser/             browser fixture page and static test server
 
 CI currently builds native 64-bit, native 32-bit, and pinned Emscripten targets;
 runs package unit tests; stages the Wasm package; compares native 32-bit and
-Wasm results; runs Chromium through Playwright; and uploads Wasm modules, the
-package distribution, and the differential JSON report.
+Wasm results; runs Chromium through Playwright; enforces artifact budgets; and
+uploads Wasm modules, the package distribution, and differential/performance
+JSON reports.
 
 Still required are sanitizer jobs, Emscripten debug artifacts, Firefox/WebKit,
-artifact-size and exported-symbol budgets, and complete artifact provenance.
+exported-symbol budget checks, and complete artifact provenance.
 
 ## Current compatibility summary
 
@@ -388,8 +390,8 @@ The detailed evidence and exclusions are maintained in
   differential fixtures before changing types or layouts.
 - **Binary format assumptions:** assert type sizes and endianness at compile time;
   test byte-level database round trips.
-- **Global state and fatal exits:** isolate in workers first, then add a narrow C
-  context API only where tests justify the refactor.
+- **Global state and fatal exits:** retain Worker isolation and keep the current
+  C ABI limited to the versioned record export unless tests justify expansion.
 - **Filesystem semantics:** keep all paths virtual and request-scoped; test every
   multi-file database operation.
 - **False confidence from examples:** examples become tests only after expected
@@ -417,5 +419,7 @@ The WebAssembly work is complete enough for an in-browser test IDE when:
 
 The current preview satisfies the basic Worker execution, typed result,
 database/PFT/FST/search, representative WXIS, cancellation, and project
-persistence portions. It does not yet satisfy the breadth, explicit host-error,
-cross-browser, structured-record, performance, or release requirements.
+persistence portions, including structured active/deleted record workflows and
+initial artifact/performance budgets. It does not yet satisfy the required
+language breadth, explicit host-error coverage, cross-browser validation,
+browser memory/latency budgets, persistence hardening, or release requirements.

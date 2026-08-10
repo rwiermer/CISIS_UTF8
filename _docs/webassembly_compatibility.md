@@ -8,11 +8,11 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 
 - Package version: `0.1.0-dev` (private preview).
 - Validated implementation: commit
-  [`0e774e6`](https://github.com/rwiermer/CISIS_UTF8/commit/0e774e62aec5af152da3307a23d72cb68eb19bc8).
+  [`7907906`](https://github.com/rwiermer/CISIS_UTF8/commit/790790694bb04f7e93b75c76c8ebfe219798ec8d).
 - Toolchain: Emscripten 6.0.4, wasm32, 32-bit `LONGX`.
 - Native parity oracle: the same commit built as 32-bit Linux ISIS1660.
 - Green reference: GitHub Actions run
-  [`31410507361`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31410507361),
+  [`31414950441`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31414950441),
   2026-08-10.
 - Browser currently tested in CI: headless Chromium.
 
@@ -23,7 +23,7 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 | Low-level execution | Verified | `run()` invokes MX or WXIS in a module Worker and returns status, stdout, stderr, diagnostics, duration, requested files, and inspected file-presence states. |
 | PFT formatting helper | Verified | `format()` runs a PFT against caller-supplied ISIS1660 database files. |
 | Structured record formatting | Verified in Chromium/native-Wasm parity | `formatRecord()` preserves ordered and repeated fields, UTF-8 values, and PFT subfield syntax while importing one active record as MFN 1. |
-| Structured database writes | Verified in Chromium; Wasm differential case added | `writeRecords()` creates or upserts up to 1,000 complete records with explicit MFNs and active/deleted status, then invalidates stale index companions. MFNs are limited to 1,000,000 and one field tag must be unused by the batch for transient import metadata. |
+| Structured database writes | Verified in Chromium/native-Wasm parity | `writeRecords()` creates or upserts up to 1,000 complete records with explicit MFNs and active/deleted status, then invalidates stale index companions. MFNs are limited to 1,000,000 and one field tag must be unused by the batch for transient import metadata. |
 | Structured database reads | Verified in Node and Chromium | `readRecords()` uses a versioned direct C export to return active and logically deleted records with explicit MFNs, ordered/repeated tags, and byte-valued fields. Reads default to and are limited to 1,000 records per call. |
 | FST indexing helper | Verified | `index()` performs full inversion and returns `.cnt`, `.ifp`, `.l01`, `.l02`, `.n01`, and `.n02`. |
 | Search helper | Verified | `search()` executes an MX Boolean expression against supplied database and index files. |
@@ -73,7 +73,8 @@ LF because Emscripten delivers output through line callbacks. The fatal parser
 case additionally normalizes terminal stderr newlines because native stdio and
 the callback transport preserve different counts. Generated ISO, MST/XRF, and
 all six inverted-file companions match the native 32-bit build byte-for-byte in
-covered scenarios. CI publishes the JSON report with the Wasm artifact.
+covered scenarios. CI publishes the compatibility and performance JSON reports
+with the Wasm artifact.
 
 ## Initial performance and artifact budgets
 
@@ -135,7 +136,8 @@ MST/XRF checksums, and subsequent selected PFT output remain compared.
 ## Remaining release work
 
 - Add more PFT/search syntax-error cases and invalid-byte fixtures.
-- Cover database record deletion, sort, and incremental inversion.
+- Cover database sort, incremental inversion, and more deletion/reactivation
+  transitions.
 - Cover IsisScript XML, temporary files, and unsupported-operation errors.
 - Add Firefox and WebKit Playwright jobs.
 - Measure browser cold start, memory, upload time, and large-database behavior.
