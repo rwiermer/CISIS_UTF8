@@ -55,21 +55,21 @@ but it is not yet a hardened or published release.
 | M0 native baseline | Operational | Separate MX and WXIS CMake targets build on native 64-bit and native 32-bit Linux; the 32-bit build is the Wasm parity oracle. |
 | M1 Emscripten executable | Operational | Pinned Emscripten 6.0.4 produces separate modularized ES modules for MX and WXIS with MEMFS. |
 | M2 browser runner | Partial | Strict-TypeScript Worker runner, isolation, validation, limits, cancellation by Worker replacement, returned files, and basic diagnostics are implemented. Chromium is green; Firefox is not yet in CI. |
-| M3 differential suite | Partial | Seven data-driven scenarios cover PFT/UTF-8, WXIS flow and nested includes, ISO import, MST/XRF reads, WXIS update writes, full FST inversion, and MX/WXIS search. More parser errors and mutation cases remain. |
-| M4 WXIS IsisScript | Partial | Hello/display, fields, loops, CGI parameters, includes, database import/update, and search match native behavior in covered cases. Host operations and XML/error cases remain to be classified and tested. |
-| M5 IDE APIs and persistence | Partial | CLI-backed `format`, `index`, `search`, and `runIsisScript` helpers, `CisisProject`, versioned snapshots, and optional IndexedDB storage are implemented. A direct C ABI, record model, migrations, quotas, and performance budgets remain. |
+| M3 differential suite | Partial | Nine data-driven scenarios cover exact PFT/UTF-8 output, missing/repeated fields, PFT and search errors, WXIS flow/includes, ISO import/export, MST/XRF reads and update writes, file deletion, full FST inversion, and MX/WXIS search. More mutation and parser cases remain. |
+| M4 WXIS IsisScript | Partial | Hello/display, fields, loops, CGI parameters, includes, database import/export/update, file deletion, and search match native behavior in covered cases. Other host operations, temporary files, and XML remain to be classified and tested. |
+| M5 IDE APIs and persistence | Partial | CLI-backed helpers, `CisisProject`, file creation/deletion synchronization, versioned snapshots, and optional IndexedDB storage are implemented. A direct C ABI, record model, migrations, quotas, and performance budgets remain. |
 | M6 hardening and release | Not started | Cross-browser coverage, release packaging, SBOM/license deliverables, security review, and reproducibility checks remain. |
 
 The current green reference is implementation commit
-[`f0c0df5`](https://github.com/rwiermer/CISIS_UTF8/commit/f0c0df51e6010bfee5076d86f787babb470ac7e5),
+[`a1410d3`](https://github.com/rwiermer/CISIS_UTF8/commit/a1410d37050170854a5beadbf3b85f2e0b951111),
 validated by GitHub Actions run
-[`31406656764`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31406656764)
+[`31408292524`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31408292524)
 on 2026-08-10.
 
 ### Next priorities
 
-1. Close M3/M4 correctness gaps with PFT/search syntax errors, missing and
-   repeated fields, database export/delete/sort, incremental inversion, WXIS
+1. Close the remaining M3/M4 correctness gaps with additional PFT/search parser
+   failures, database record deletion and sort, incremental inversion, WXIS
    temporary files/XML, and explicit unsupported-host-operation tests.
 2. Complete M5 project portability with an export/import archive, IndexedDB
    migration and quota behavior, a serializable record model, and measured
@@ -136,6 +136,7 @@ type CisisRunRequest = {
   maxOutputBytes?: number;
   maxReturnedFileBytes?: number;
   returnFiles?: string[];
+  inspectFiles?: string[];
 };
 
 type CisisRunResult = {
@@ -143,6 +144,7 @@ type CisisRunResult = {
   stdout: string;
   stderr: string;
   files: Record<string, Uint8Array>;
+  fileStates: Record<string, boolean>;
   diagnostics: CisisDiagnostic[];
   durationMs: number;
 };
@@ -246,7 +248,7 @@ and timeout recovery leaves the next run usable.
 ### M3: differential compatibility suite
 
 **Status: partial.** The runner and published compatibility matrix exist. The
-current seven scenarios cover the main database/index/search path, but not the
+current nine scenarios cover the main database/index/search path, but not the
 full example groups listed below.
 
 - Build a native fixture runner that emits a JSON manifest containing command,
@@ -275,9 +277,9 @@ silently.
 
 ### M4: WXIS IsisScript
 
-**Status: partial.** Representative flow, includes, import/update, and search
-are covered. Temporary-file behavior, XML, error paths, and explicit rejection
-of unsupported host operations remain.
+**Status: partial.** Representative flow, includes, import/export/update, file
+deletion, search, and error behavior are covered. Temporary files, XML, and
+explicit rejection of unsupported host operations remain.
 
 - Compile the WXIS entry point and feed CGI-like parameters through request-local
   input rather than the browser's real process environment.

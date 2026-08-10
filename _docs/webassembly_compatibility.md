@@ -8,11 +8,11 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 
 - Package version: `0.1.0-dev` (private preview).
 - Validated implementation: commit
-  [`f0c0df5`](https://github.com/rwiermer/CISIS_UTF8/commit/f0c0df51e6010bfee5076d86f787babb470ac7e5).
+  [`a1410d3`](https://github.com/rwiermer/CISIS_UTF8/commit/a1410d37050170854a5beadbf3b85f2e0b951111).
 - Toolchain: Emscripten 6.0.4, wasm32, 32-bit `LONGX`.
 - Native parity oracle: the same commit built as 32-bit Linux ISIS1660.
 - Green reference: GitHub Actions run
-  [`31406656764`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31406656764),
+  [`31408292524`](https://github.com/rwiermer/CISIS_UTF8/actions/runs/31408292524),
   2026-08-10.
 - Browser currently tested in CI: headless Chromium.
 
@@ -20,12 +20,12 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 
 | Capability | State | Current behavior |
 | --- | --- | --- |
-| Low-level execution | Verified | `run()` invokes MX or WXIS in a module Worker and returns status, stdout, stderr, diagnostics, duration, and requested files. |
+| Low-level execution | Verified | `run()` invokes MX or WXIS in a module Worker and returns status, stdout, stderr, diagnostics, duration, requested files, and inspected file-presence states. |
 | PFT formatting helper | Verified | `format()` runs a PFT against caller-supplied ISIS1660 database files. |
 | FST indexing helper | Verified | `index()` performs full inversion and returns `.cnt`, `.ifp`, `.l01`, `.l02`, `.n01`, and `.n02`. |
 | Search helper | Verified | `search()` executes an MX Boolean expression against supplied database and index files. |
 | IsisScript helper | Verified subset | `runIsisScript()` maps source, parameters, and files to request-local WXIS arguments. |
-| Project workspace | Verified | `CisisProject` retains host-side files, resubmits them to isolated runs, and absorbs explicitly returned outputs. |
+| Project workspace | Verified | `CisisProject` retains host-side files, absorbs returned outputs, and removes retained files inspected as absent after a run. |
 | Project snapshots | Verified | Snapshots use schema version 1 and defensive `Uint8Array` copies. |
 | IndexedDB persistence | Verified in Chromium | `CisisProjectStore` supports save, load, list, delete, and close. |
 | Direct C API | Not implemented | IDE helpers currently translate to validated MX/WXIS command arguments. |
@@ -35,31 +35,35 @@ PFT extension, FST technique, or IsisScript task works in a browser.
 
 | Area | State | Verified coverage | Important gaps |
 | --- | --- | --- | --- |
-| PFT | Supported subset | literals, MFN, field selection, and a combining-character UTF-8 case | modes, subfields, missing/repeated fields, functions, includes, syntax errors, and asserted non-Latin output need focused cases |
+| PFT | Supported subset | literals, MFN, field selection, missing fields, repeated fields, a combining-character UTF-8 case, and one fatal syntax error | modes, subfields, broader functions/includes/errors, and asserted non-Latin output need focused cases |
 | IsisScript flow | Supported subset | display, fields, loops, CGI parameters, and nested includes | broader flow/error examples and precise source diagnostics |
-| IsisScript database work | Supported subset | ISO import, update writes, database reads, and Boolean search | export, delete, sort, XML conversion, and temporary-file workflows |
-| Database format | Supported subset | ISO2709 import and current ISIS1660 MST/XRF creation and reads | other historical layouts, large databases, deleted records, and endian portability |
+| IsisScript database work | Supported subset | ISO import/export, update writes, database reads, file deletion, Boolean search, and malformed-search reporting | record deletion, sort, XML conversion, and temporary-file workflows |
+| Database format | Supported subset | ISO2709 import/export and current ISIS1660 MST/XRF creation and reads | other historical layouts, large databases, deleted records, and endian portability |
 | FST and inversion | Supported subset | bundled CDS techniques 0, 2, and 4; full inversion through the in-process CISIS sorter | other techniques, stopword/table variants, and incremental inversion |
-| Search | Supported subset | MX and WXIS Boolean retrieval against a newly generated inverted file | syntax-error matrix, prefixes, sets, logs, and larger result sets |
+| Search | Supported subset | MX and WXIS Boolean retrieval plus one WXIS malformed-expression path | broader syntax-error matrix, prefixes, sets, logs, and larger result sets |
 | UTF-8 | Supported subset | valid UTF-8 with a combining-character sequence | asserted accents/non-Latin output, table-driven case conversion, and deliberately invalid byte sequences |
 
 ## Differential scenarios
 
-Seven scenarios currently execute against both native 32-bit and Wasm builds:
+Nine scenarios currently execute against both native 32-bit and Wasm builds:
 
 1. UTF-8 sequence input and PFT output.
 2. WXIS hello/display output.
 3. WXIS field definition and loop control.
 4. WXIS nested includes and calls.
-5. ISO import followed by MST/XRF record reads.
-6. ISO import, FST full inversion, MX search, and WXIS search.
-7. WXIS ISO import/update followed by an MX database read.
+5. Fatal PFT syntax error with structured format diagnostics.
+6. WXIS file deletion and inspected post-run file state.
+7. ISO import/export, MST/XRF reads, and missing/repeated-field PFT output.
+8. ISO import, FST full inversion, MX search, WXIS search, and malformed search.
+9. WXIS ISO import/update followed by an MX database read.
 
 The differential runner compares exit status, stdout, stderr, and requested
 output-file SHA-256 checksums. It normalizes CRLF to LF and removes one terminal
-LF because Emscripten delivers output through line callbacks. Generated MST/XRF
-and all six inverted-file companions match the native 32-bit build byte-for-byte
-in covered scenarios. CI publishes the JSON report with the Wasm artifact.
+LF because Emscripten delivers output through line callbacks. The fatal parser
+case additionally normalizes terminal stderr newlines because native stdio and
+the callback transport preserve different counts. Generated ISO, MST/XRF, and
+all six inverted-file companions match the native 32-bit build byte-for-byte in
+covered scenarios. CI publishes the JSON report with the Wasm artifact.
 
 ## Browser execution and limits
 
@@ -97,8 +101,8 @@ MST/XRF checksums, and subsequent selected PFT output remain compared.
 
 ## Remaining release work
 
-- Add focused PFT and search syntax-error cases and invalid-byte fixtures.
-- Cover database export, delete, sort, and incremental inversion.
+- Add more PFT/search syntax-error cases and invalid-byte fixtures.
+- Cover database record deletion, sort, and incremental inversion.
 - Cover IsisScript XML, temporary files, and unsupported-operation errors.
 - Add Firefox and WebKit Playwright jobs.
 - Measure cold start, repeated-run latency, memory, upload time, and artifact size.
