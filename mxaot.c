@@ -12,6 +12,16 @@
 
 #include "mx.h"                     /* MX Program header file */
 
+static char *mx_readline(char *buffer, size_t capacity)
+{
+    char *newline;
+
+    if (!fgets(buffer, capacity, stdin)) return NULL;
+    newline=strpbrk(buffer, "\r\n");
+    if (newline) *newline='\0';
+    return buffer;
+}
+
 #if UTF8
 #define DIR_FILE 0                  /* list=directory */
 #else
@@ -3323,7 +3333,7 @@ LOOP:
                 n=1;
                 if (parmtextp && !mxtext_found) n=0;
                 if (n) {
-                    printf(prompt1p); isxp=gets(line); p=isxp;
+                    printf("%s",prompt1p); isxp=mx_readline(line,LINSIZE); p=isxp;
                     if (ISX(p)) break;
                     if (p) if (*p) { if (mxbool(xmxp,p,dbnp)) MXEXIT(1); count=0; goto LOOP; }
                 }
@@ -3922,7 +3932,7 @@ if ((parmkpostings && TRMpost < TRMxytotp) && (TRMpost%parmkkeep2 != 0)) goto KL
                     n=1;
                     if (parmsyss) {
                         printf("%s\n",shp);
-                        printf(prompt1p); isxp=gets(line); q=isxp;
+                        printf("%s",prompt1p); isxp=mx_readline(line,LINSIZE); q=isxp;
                         if (ISX(q)) n=0;
                     }
                     if (n) system(shp);
@@ -4130,7 +4140,7 @@ if ((parmkpostings && TRMpost < TRMxytotp) && (TRMpost%parmkkeep2 != 0)) goto KL
 
     if (parmwait && boolqryp != NULL) {
         do {
-            printf(prompt2p); isxp=gets(line); p=isxp;
+            printf("%s",prompt2p); isxp=mx_readline(line,LINSIZE); p=isxp;
             if (!p) break;
         } while (!*p);
         if (ISX(p) || !p)
