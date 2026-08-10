@@ -78,7 +78,10 @@ function(cisis_configure_target target is_wxis)
   target_include_directories(${target} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/wxis_src)
 
-  target_compile_options(${target} PRIVATE -funsigned-char -fcommon)
+  target_compile_options(${target} PRIVATE -funsigned-char)
+  if(NOT EMSCRIPTEN)
+    target_compile_options(${target} PRIVATE -fcommon)
+  endif()
   target_compile_definitions(${target} PRIVATE
     CIFFI=0
     LIND=0

@@ -16,9 +16,9 @@ mkdir -p "$work"
 
 "$mx" "iso=$root/wxis_src/examples/cds/cds.iso" "create=$db" now >/dev/null
 
-actual=$("$mx" "$db" "pft=mfn(4),'|',v24/" from=1 count=2 now)
-expected="   1|Techniques for the measurement of transpiration of individual plants
-   2|<The> Controlled climate in the plant chamber and its influence upon assimilation and transpiration"
+actual=$("$mx" "$db" "pft=mfn(4),'|',v24/" from=1 count=2 lw=0 now)
+expected="0001|Techniques for the measurement of transpiration of individual plants
+0002|<The> Controlled climate in the plant chamber and its influence upon assimilation and transpiration"
 
 if [ "$actual" != "$expected" ]; then
   printf '%s\n' "MX PFT output did not match." >&2
