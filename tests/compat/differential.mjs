@@ -99,12 +99,13 @@ function textDifference(native, wasm) {
   };
 }
 
-function assertEquivalent(scenario, stepIndex, native, wasm) {
+function assertEquivalent(scenario, stepIndex, step, native, wasm) {
   const differences = {};
   if (native.exitCode !== wasm.exitCode) {
     differences.exitCode = { native: native.exitCode, wasm: wasm.exitCode };
   }
-  for (const stream of ["stdout", "stderr"]) {
+  const streams = step.compareStdout === false ? ["stderr"] : ["stdout", "stderr"];
+  for (const stream of streams) {
     if (native[stream] !== wasm[stream]) {
       differences[stream] = textDifference(native[stream], wasm[stream]);
     }
@@ -166,10 +167,16 @@ for (const scenario of scenarios) {
       for (const [name, data] of Object.entries(wasmRaw.files)) wasmFiles.set(name, data);
       const native = comparableResult(nativeRaw, step.outputs);
       const wasm = comparableResult(wasmRaw, step.outputs);
-      assertEquivalent(scenario.name, stepIndex, native, wasm);
+      assertEquivalent(scenario.name, stepIndex, step, native, wasm);
       scenarioReport.steps.push({
         program: step.program,
         args: step.args,
+        comparisons: {
+          exitCode: true,
+          stdout: step.compareStdout !== false,
+          stderr: true,
+          outputChecksums: true,
+        },
         native,
         wasm,
       });

@@ -51,6 +51,7 @@ export const scenarios = [
         program: "mx",
         args: ["iso=cds.iso", "create=cds", "now"],
         outputs: ["cds.mst", "cds.xrf"],
+        compareStdout: false,
       },
       {
         program: "mx",

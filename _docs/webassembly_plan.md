@@ -61,7 +61,11 @@ inferred from the misleadingly named native `SIXTY_FOUR` build flag.
   UTF-8, WXIS, ISO import, and database-read scenarios with native 32-bit and
   WebAssembly binaries. It compares status and narrowly normalized output,
   carries generated databases between steps, and publishes a checksum-bearing
-  JSON report. Further examples can be promoted by extending the scenario list.
+  JSON report. The legacy-encoded ISO import's incidental record dump is kept
+  in the report but excluded from text comparison because libc and Emscripten
+  decode its invalid UTF-8 bytes differently; its generated database files are
+  still compared byte-for-byte. Further examples can be promoted by extending
+  the scenario list.
 - **Next:** broaden M3 into FST/inverted-file search, database mutation, syntax
   errors, includes, and the remaining grouped repository examples.
 
