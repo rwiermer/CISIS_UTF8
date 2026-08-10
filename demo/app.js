@@ -114,6 +114,14 @@ const CHECK_FORMAT_SCRIPT = `<?xml version="1.0"?>
 const deletedRecords = structuredClone(DEMO_RECORDS);
 deletedRecords[3].status = "deleted";
 
+const FULL_CATALOG_FST = `24 8 '|TI_|',MHU,V24
+70 8 '|AU_|',MHU,(V70/)
+69 8 '|SU_|',MHU,(V69/)
+26 8 '|PL_|',MHU,V26^a
+27 8 '|PU_|',MHU,V26^b
+30 0 'YR_',V30
+99 4 MHU,V24/,(V70/),(V69/),V26^a/,V26^b/,V30`;
+
 const EXAMPLES = {
   pft: [
     {
@@ -157,6 +165,12 @@ const EXAMPLES = {
       fst: "24 4 MHU,V24\n69 4 (MHU,V69/)",
       expression: "DIGITAL * PRESERVATION",
       pft: "mfn(3),'  ',v24/",
+    },
+    {
+      label: "Full catalog index",
+      fst: FULL_CATALOG_FST,
+      expression: "SU_DIGITAL * SU_PRESERVATION",
+      pft: "mfn(3),' | ',v24/,'     ',(v70+|; |)/,'     ',v26^a,' : ',v26^b,' | ',v30/,'     ',(v69+| · |)/",
     },
   ],
   wxis: [

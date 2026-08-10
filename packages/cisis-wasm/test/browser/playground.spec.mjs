@@ -11,7 +11,7 @@ test("runs the interactive playground workflows", async ({ page }) => {
   await expect(page.locator("#runtime-label")).toHaveText("Runtime ready");
   await expect(page.locator("#record-list .record-item")).toHaveCount(4);
   await expect(page.locator("#pft-example option")).toHaveCount(4);
-  await expect(page.locator("#search-example option")).toHaveCount(4);
+  await expect(page.locator("#search-example option")).toHaveCount(5);
   await expect(page.locator("#wxis-example option")).toHaveCount(3);
   await expect(page.locator("#records-example option")).toHaveCount(3);
   await expect(page.locator("#fdt-example option")).toHaveCount(3);
@@ -74,6 +74,13 @@ test("loads and runs alternate playground examples", async ({ page }) => {
   await expect(page.locator("#output-status")).toHaveText("Completed");
   await expect(page.locator("#console")).toContainText("Aiko Tanaka");
 
+  await page.locator("#search-example").selectOption({ label: "Full catalog index" });
+  await page.locator("#run-button").click();
+  await expect(page.locator("#output-status")).toHaveText("Completed");
+  await expect(page.locator("#console")).toContainText("The climate archive");
+  await expect(page.locator("#console")).toContainText("Preserving multilingual research data");
+  await expect(page.locator("#console")).not.toContainText("Community radio collections");
+
   await page.getByRole("tab", { name: "WXIS" }).click();
   await page.locator("#wxis-example").selectOption({ label: "Database range" });
   await page.locator("#run-button").click();
@@ -125,6 +132,7 @@ test("executes every bundled example", async ({ page }, testInfo) => {
     ["Author words", "Completed"],
     ["Subject words", "Completed"],
     ["Compound AND", "Completed"],
+    ["Full catalog index", "Completed"],
   ]);
   await runExamples("WXIS", "#wxis-example", [
     ["CGI parameter + loop", "Completed"],
@@ -147,4 +155,28 @@ test("executes every bundled example", async ({ page }, testInfo) => {
     ["Select one MFN", "Completed"],
     ["Sequence input", "Completed"],
   ]);
+});
+
+test("indexes every full catalog FST namespace", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Full FST term sweep runs once in Chromium");
+  await page.goto("/build/pages/index.html");
+  await page.waitForFunction(() => window.__cisisPlaygroundReady);
+  await page.getByRole("tab", { name: "FST + Search" }).click();
+  await page.locator("#search-example").selectOption({ label: "Full catalog index" });
+
+  const searches = [
+    ["TI_CLIMATE", "The climate archive"],
+    ["AU_TANAKA", "日本語図書館のメタデータ"],
+    ["SU_RADIO", "Community radio collections"],
+    ["PL_AMSTERDAM", "The climate archive"],
+    ["PU_KNOWLEDGE", "日本語図書館のメタデータ"],
+    ["YR_2023", "Preserving multilingual research data"],
+    ["SCHOLARSHIP", "Preserving multilingual research data"],
+  ];
+  for (const [expression, title] of searches) {
+    await page.locator("#search-expression").fill(expression);
+    await page.locator("#run-button").click();
+    await expect(page.locator("#output-status")).toHaveText("Completed");
+    await expect(page.locator("#console")).toContainText(title);
+  }
 });
